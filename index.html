@@ -87,6 +87,7 @@
   .medbtn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:11px 8px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;text-align:left;color:var(--ink);}
   .medbtn .d{font-size:10px;color:var(--mute);font-weight:600;margin-top:2px;}
   .medbtn.short{border-left:3px solid var(--orange);}
+  .medbtn.proc{border-left:3px solid #7a5cb0;}
   .medbtn.depot{border-left:3px solid var(--depot);}
   .medbtn.serm{border-left:3px solid var(--serm);}
   .medbtn.care{border-left:3px solid var(--care);}
@@ -97,7 +98,7 @@
   .row .l .dt{font-size:11px;color:var(--mute);font-weight:600;}
   .row .r{font-size:12px;font-weight:800;font-variant-numeric:tabular-nums;text-align:right;}
   .pill{display:inline-block;font-size:10px;font-weight:800;padding:2px 7px;border-radius:5px;color:#fff;}
-  .pill.short{background:var(--orange);}.pill.depot{background:var(--depot);}.pill.serm{background:var(--serm);}.pill.care{background:var(--care);}
+  .pill.short{background:var(--orange);}.pill.depot{background:var(--depot);}.pill.serm{background:var(--serm);}.pill.care{background:var(--care);}.pill.proc{background:#7a5cb0;}
   .del{background:none;border:none;color:var(--mute);font-size:18px;cursor:pointer;padding:0 4px;}
   .flag-h{color:var(--high);font-weight:800;}
   .flag-l{color:var(--low);font-weight:800;}
@@ -226,7 +227,14 @@
     <input type="date" class="datein" id="medDate">
     <div class="medbtns" id="medBtns"></div>
     <div class="hint">タップした日付で投与を記録します。用量は標準値が入ります（あとで履歴から編集可）。</div>
-    <div class="sec-t" style="margin-top:12px;">投与履歴</div>
+
+    <div class="sec-t" style="margin-top:16px;">施術を記録（タップ）</div>
+    <input type="date" class="datein" id="procDate">
+    <input class="datein" id="procNote" placeholder="部位・箇所数など（例：下腹部・浮き輪 5箇所）" style="margin-bottom:8px;">
+    <div class="medbtns" id="procBtns"></div>
+    <div class="hint">クールスカルプティング等の施術を、上の日付・メモで記録します。投与履歴に並びます。</div>
+
+    <div class="sec-t" style="margin-top:12px;">投与・施術の履歴</div>
     <div id="medHist"></div>
   </div>
 
@@ -324,6 +332,13 @@ const MEDS=[
   {k:"アナストロゾール",dose:"0.5mg",cls:"care"},{k:"hCG",dose:"3000IU",cls:"care"},
 ];
 const IB_FIELDS=[{k:"wt",n:"体重",u:"kg"},{k:"smm",n:"骨格筋量",u:"kg"},{k:"mm",n:"筋肉量",u:"kg"},{k:"fat",n:"体脂肪量",u:"kg"},{k:"pbf",n:"体脂肪率",u:"%"}];
+// 施術（クールスカルプティング等）の候補ボタン
+const PROC_OPTS=[
+  {name:"クールスカルプティング",cls:"proc"},
+  {name:"脂肪冷却",cls:"proc"},
+  {name:"HIFU",cls:"proc"},
+  {name:"脂肪溶解注射",cls:"proc"},
+];
 // 連日内服の候補（開始ボタン用）
 const ONGOING_OPTS=[
   {name:"デュタステリド",dose:"0.5mg",cls:"care"},
@@ -341,8 +356,22 @@ function persist(){localStorage.setItem(KEY,JSON.stringify(DB));}
 let DB=load();
 if(DB&&!DB.ongoing)DB.ongoing=[];
 if(DB&&!DB.customEx)DB.customEx={};
+if(DB&&!DB.procedures)DB.procedures=[];
+// 一度だけ：7/13のクールスカルプティングを登録（既存ユーザー向け）
+if(DB&&DB.procedures&&!DB._csAdded){
+  if(!DB.procedures.some(p=>p.date==="2026-07-13"&&p.name==="クールスカルプティング"))
+    DB.procedures.push({date:"2026-07-13",name:"クールスカルプティング",note:"下腹部・浮き輪エリア 5箇所",cls:"proc"});
+  DB._csAdded=true;localStorage.setItem("anzu_tracker_v1",JSON.stringify(DB));
+}
+// 一度だけ：7/13のInBody（夜20:02測定＝参考外）を登録
+if(DB&&DB.inbody&&!DB._ib0713Added){
+  DB.inbody=DB.inbody.filter(x=>x.date!=="2026-07-13");
+  DB.inbody.push({date:"2026-07-13",vals:{wt:67.1,smm:32.4,mm:54.1,fat:9.8,pbf:14.7},noise:true});
+  DB.inbody.sort((a,b)=>a.date<b.date?-1:1);
+  DB._ib0713Added=true;localStorage.setItem("anzu_tracker_v1",JSON.stringify(DB));
+}
 if(!DB){
-  DB={training:[],labs:[],meds:[],inbody:[],ongoing:[],customEx:{},cond:{},seeded:true};
+  DB={training:[],labs:[],meds:[],inbody:[],ongoing:[],customEx:{},procedures:[],cond:{},seeded:true};
   // seed labs
   const L=[
     ["2026-05-13",{tT:794.4,fT:13.2,E2:28.7,Ht:47.2,Hb:14.8,HDL:77,eGFR:78.3,PRL:10.3,LH:3.9,FSH:3.2,LDL:117,TG:48,AST:20,ALT:14,CK:178,Cr:0.86,WBC:2910,RBC:509,UA:6.4,Na:140}],
@@ -368,8 +397,12 @@ if(!DB){
     ["2026-06-05",67.5,33.1,55.3,9.0,13.3,false],["2026-06-08",67.0,32.2,53.7,10.3,15.4,false],
     ["2026-06-13",66.3,32.6,54.3,8.9,13.4,false],["2026-06-26",66.6,32.9,54.9,8.5,12.8,false],
     ["2026-07-01",67.4,33.0,55.3,9.5,14.1,true],["2026-07-07",66.3,32.3,53.7,9.6,14.4,true],
+    ["2026-07-13",67.1,32.4,54.1,9.8,14.7,true],
   ];
   DB.inbody=IB.map(([date,wt,smm,mm,fat,pbf,noise])=>({date,vals:{wt,smm,mm,fat,pbf},noise}));
+  // seed procedures
+  DB.procedures=[{date:"2026-07-13",name:"クールスカルプティング",note:"下腹部・浮き輪エリア 5箇所",cls:"proc"}];
+  DB._csAdded=true;DB._ib0713Added=true;
   // seed ongoing daily meds (continue until overwritten)
   DB.ongoing=[
     {name:"デュタステリド",dose:"0.5mg",cls:"care",start:"2026-05-01",end:null},
@@ -380,7 +413,7 @@ if(!DB){
 const todayStr=()=>{const d=new Date(Date.now()-4*3600*1000);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
 const jpDate=()=>{const d=new Date(Date.now()-4*3600*1000);const w=["日","月","火","水","木","金","土"][d.getDay()];return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日（${w}）`;};
 document.getElementById("today").textContent=jpDate();
-["labDate","medDate","ibDate"].forEach(id=>document.getElementById(id).value=todayStr());
+["labDate","medDate","ibDate","procDate"].forEach(id=>{const e=document.getElementById(id);if(e)e.value=todayStr();});
 
 // ================= APP =================
 const app={
@@ -531,6 +564,8 @@ const app={
     `<button class="medbtn ${m.cls}" onclick="app.addMed(${i})">${m.k}<span class="d">${m.dose}</span></button>`).join("");
     document.getElementById("ongoingBtns").innerHTML=ONGOING_OPTS.map((m,i)=>
     `<button class="medbtn ${m.cls}" onclick="app.startOngoing(${i})">＋連日 ${m.name}<span class="d">${m.dose}／日</span></button>`).join("");
+    const pb=document.getElementById("procBtns");if(pb)pb.innerHTML=PROC_OPTS.map((p,i)=>
+    `<button class="medbtn ${p.cls}" onclick="app.addProc(${i})">${p.name}</button>`).join("");
     this.renderOngoing();},
   renderOngoing(){const el=document.getElementById("ongoingList");if(!el)return;
     const active=(DB.ongoing||[]).filter(o=>!o.end);
@@ -590,7 +625,7 @@ const app={
     catch(e){box.innerHTML='<div class="hint" style="color:var(--warn)">形式が読み取れません。</div>';return;}
     if(!obj||typeof obj!=="object"||!("training" in obj||"labs" in obj)){box.innerHTML='<div class="hint" style="color:var(--warn)">バックアップ形式ではないようです。</div>';return;}
     if(!confirm("現在のデータを、この内容で置き換えます。よろしいですか？"))return;
-    DB=Object.assign({training:[],labs:[],meds:[],inbody:[],ongoing:[],cond:{}},obj);
+    DB=Object.assign({training:[],labs:[],meds:[],inbody:[],ongoing:[],customEx:{},procedures:[],cond:{}},obj);
     persist();document.getElementById("restoreText").value="";
     box.innerHTML='<div class="feedback" style="background:#e8f2ec;border-color:#bfe0cf;color:#1e5a3a;">復元しました ✓ 各タブでご確認ください。</div>';
     this.toast("復元しました ✓");
@@ -598,10 +633,21 @@ const app={
   },
   addMed(i){const m=MEDS[i],date=document.getElementById("medDate").value;if(!date)return;
     DB.meds.push({date,name:m.k,dose:m.dose,cls:m.cls});DB.meds.sort((a,b)=>a.date<b.date?-1:1);persist();this.toast(`${m.k} ${m.dose} を記録 ✓`);this.renderMedHist();},
-  renderMedHist(){const el=document.getElementById("medHist");const s=[...DB.meds].reverse();
-    if(!s.length){el.innerHTML='<div class="empty">記録なし</div>';return;}
-    el.innerHTML=s.map((m,idx)=>`<div class="row"><div class="l"><span class="pill ${m.cls}">${m.name}</span> ${m.dose}<span class="dt"> ${m.date.slice(5)}</span></div>
-      <button class="del" onclick="app.delMed('${m.date}','${m.name}','${m.dose}')">×</button></div>`).join("");},
+  addProc(i){const p=PROC_OPTS[i],date=document.getElementById("procDate").value;if(!date){this.toast("日付を入れてください");return;}
+    const note=document.getElementById("procNote").value.trim();
+    DB.procedures.push({date,name:p.name,note,cls:"proc"});DB.procedures.sort((a,b)=>a.date<b.date?-1:1);persist();
+    document.getElementById("procNote").value="";this.toast(`${p.name} を記録 ✓`);this.renderMedHist();},
+  delProc(d,n,note){const i=DB.procedures.findIndex(p=>p.date===d&&p.name===n&&(p.note||"")===note);if(i>=0)DB.procedures.splice(i,1);persist();this.renderMedHist();},
+  renderMedHist(){const el=document.getElementById("medHist");
+    const meds=(DB.meds||[]).map(m=>({...m,_t:"med"}));
+    const procs=(DB.procedures||[]).map(p=>({...p,_t:"proc"}));
+    const all=[...meds,...procs].sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0);
+    if(!all.length){el.innerHTML='<div class="empty">記録なし</div>';return;}
+    el.innerHTML=all.map(x=>{
+      if(x._t==="proc"){return `<div class="row"><div class="l"><span class="pill proc">施術</span> ${x.name}${x.note?'<br><span style="font-size:11px;color:var(--mute)">'+x.note+'</span>':''}<span class="dt"> ${x.date.slice(5)}</span></div>
+        <button class="del" onclick="app.delProc('${x.date}','${x.name}','${(x.note||"").replace(/'/g,"")}')">×</button></div>`;}
+      return `<div class="row"><div class="l"><span class="pill ${x.cls}">${x.name}</span> ${x.dose}<span class="dt"> ${x.date.slice(5)}</span></div>
+      <button class="del" onclick="app.delMed('${x.date}','${x.name}','${x.dose}')">×</button></div>`;}).join("");},
   delMed(d,n,dose){const i=DB.meds.findIndex(m=>m.date===d&&m.name===n&&m.dose===dose);if(i>=0)DB.meds.splice(i,1);persist();this.renderMedHist();},
   // ---- inbody ----
   renderIBInputs(){document.getElementById("ibFields").innerHTML=IB_FIELDS.map(f=>
@@ -699,6 +745,15 @@ app.buildMedText=function(scope){
   if(meds.length){
     lines.push("【単回投与】");
     meds.forEach(m=>{const d=new Date(m.date+"T00:00:00");lines.push(`・${m.date}（${wd[d.getDay()]}）${m.name} ${m.dose}`);});
+  }
+  // 施術
+  let procs=(DB.procedures||[]).slice();
+  if(scope==="today")procs=procs.filter(p=>p.date===todayStr());
+  procs.sort((a,b)=>a.date<b.date?-1:1);
+  if(procs.length){
+    lines.push("");
+    lines.push("【施術】");
+    procs.forEach(p=>{const d=new Date(p.date+"T00:00:00");lines.push(`・${p.date}（${wd[d.getDay()]}）${p.name}${p.note?" — "+p.note:""}`);});
   }
   const out=lines.join("\n").trim();
   return out||null;
