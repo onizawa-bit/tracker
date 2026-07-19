@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>あんず TRT & トレーニング トラッカー</title>
+<style>
+  :root{
+    --navy:#1a3a5c; --navy-d:#0f2440; --orange:#e89042; --orange-d:#c46a1f;
+    --paper:#f3f1ea; --panel:#ffffff; --ink:#1f2d3d; --mute:#7a828c; --line:#e6e2d8;
+    --up:#2f8f5f; --same:#b98a2e; --down:#c0553a; --care:#2f7d8c; --warn:#c0392b; --rec:#c0392b;
+    --high:#c0392b; --low:#2f6fae; --depot:#b0521b; --serm:#2f7d82;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--paper);}
+  body{font-family:"Hiragino Kaku Gothic ProN","Yu Gothic Medium","Yu Gothic","Noto Sans JP",sans-serif;
+    color:var(--ink);-webkit-font-smoothing:antialiased;padding-bottom:20px;}
+  .wrap{max-width:640px;margin:0 auto;}
+  header{background:linear-gradient(135deg,var(--navy-d),var(--navy));color:#fff;padding:15px 18px 12px;}
+  header .t{font-size:11px;letter-spacing:.16em;color:var(--orange);font-weight:700;}
+  header h1{font-size:18px;margin:2px 0 0;font-weight:800;}
+  header .date{font-size:12px;color:#cdd8e6;margin-top:3px;}
+  .tabs{display:flex;background:var(--navy);position:sticky;top:0;z-index:15;overflow-x:auto;}
+  .tabs button{flex:1;min-width:58px;background:none;border:none;color:#9fb2c6;font-size:12px;font-weight:700;
+    padding:11px 3px;cursor:pointer;border-bottom:3px solid transparent;font-family:inherit;white-space:nowrap;}
+  .tabs button.on{color:#fff;border-bottom-color:var(--orange);}
+  .view{display:none;padding:14px;}
+  .view.on{display:block;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:11px;box-shadow:0 1px 2px rgba(15,36,64,.04);}
+  .sec-t{font-size:13px;font-weight:800;color:var(--navy);margin:4px 2px 9px;display:flex;align-items:center;gap:7px;}
+  .sec-t::before{content:"";width:4px;height:15px;background:var(--orange);border-radius:2px;}
+  .hint{font-size:11px;color:var(--mute);line-height:1.55;margin:2px 0 12px;}
+  .btn{border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:800;font-family:inherit;cursor:pointer;width:100%;}
+  .btn.primary{background:var(--orange-d);color:#fff;}
+  .btn.ghost{background:#eee9df;color:var(--ink);}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy-d);color:#fff;padding:10px 20px;border-radius:24px;font-size:13px;font-weight:700;z-index:40;opacity:0;transition:opacity .3s;pointer-events:none;}
+  .toast.show{opacity:1;}
+
+  /* days & training (kept) */
+  .days{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px;}
+  .days button{flex:none;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:12px;font-weight:700;color:var(--ink);cursor:pointer;font-family:inherit;min-width:72px;}
+  .days button.on{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .days button .sub{display:block;font-size:9.5px;color:var(--mute);font-weight:600;margin-top:1px;}
+  .days button.on .sub{color:#cdd8e6;}
+  .ex-h{display:flex;gap:8px;margin-bottom:9px;}
+  .ex-num{flex:none;width:22px;height:22px;border-radius:50%;background:var(--orange);color:#fff;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;margin-top:1px;}
+  .ex-name{font-size:14px;font-weight:800;line-height:1.3;}
+  .ex-target{font-size:11px;color:var(--mute);margin-top:1px;}
+  .ex-star{color:var(--orange-d);}
+  .prev{background:#f6f2ea;border-radius:8px;padding:7px 10px;font-size:12px;margin-bottom:9px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;}
+  .prev .lbl{color:var(--mute);font-size:10.5px;font-weight:700;}
+  .prev .val{font-weight:800;color:var(--navy);}
+  .prev .goal{font-size:11px;color:var(--orange-d);font-weight:700;}
+  .colhead,.setrow{display:grid;grid-template-columns:24px 1fr 1fr 1fr 24px;gap:6px;align-items:center;}
+  .colhead span{font-size:9.5px;color:var(--mute);font-weight:700;text-align:center;}
+  .colhead{grid-template-columns:1fr 1fr 1fr 64px;}
+  .setrow .sn{font-size:11px;font-weight:800;color:var(--mute);text-align:center;}
+  .setrow input{width:100%;padding:8px 2px;border:1px solid var(--line);border-radius:8px;font-size:15px;text-align:center;font-family:inherit;}
+  .setrow input:focus{outline:none;border-color:var(--orange);}
+  .setrow .judge{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;}
+  .logrow{display:grid;grid-template-columns:1fr 1fr 1fr 64px;gap:6px;align-items:center;margin-top:2px;}
+  .logrow input{width:100%;padding:9px 2px;border:1px solid var(--line);border-radius:8px;font-size:16px;text-align:center;font-family:inherit;}
+  .logrow input:focus{outline:none;border-color:var(--orange);}
+  .logbtn{background:var(--orange-d);color:#fff;border:none;border-radius:8px;padding:10px 4px;font-size:14px;font-weight:800;font-family:inherit;cursor:pointer;}
+  .donesets{margin:8px 0 4px;display:flex;flex-direction:column;gap:4px;}
+  .doneset{display:flex;align-items:center;gap:8px;background:#f4f8f5;border:1px solid #dbe8de;border-radius:8px;padding:6px 10px;}
+  .doneset .dn{width:18px;height:18px;border-radius:50%;background:#2f8f5f;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;}
+  .doneset .dv{flex:1;font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;}
+  .doneset .dv small{font-weight:600;color:var(--mute);font-size:11px;}
+  .doneset .drir{font-size:10px;color:var(--mute);}
+  .doneset .del{background:none;border:none;color:var(--mute);font-size:17px;cursor:pointer;padding:0 2px;}
+  .addset{background:none;border:1px dashed var(--line);border-radius:8px;color:var(--mute);font-size:12px;font-weight:700;padding:6px;cursor:pointer;font-family:inherit;margin-top:6px;width:100%;}
+
+  /* lab input */
+  .labgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .labfld{display:flex;flex-direction:column;}
+  .labfld label{font-size:11px;font-weight:700;color:var(--navy);margin-bottom:3px;}
+  .labfld .rng{font-size:9px;color:var(--mute);font-weight:600;}
+  .labfld input{padding:9px;border:1px solid var(--line);border-radius:8px;font-size:15px;font-family:inherit;text-align:center;}
+  .labfld input:focus{outline:none;border-color:var(--orange);}
+  details{margin:8px 0;}
+  summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--care);padding:6px 0;}
+  .datein{padding:9px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;width:100%;margin-bottom:10px;}
+
+  /* med buttons */
+  .medbtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+  .medbtn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:11px 8px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;text-align:left;color:var(--ink);}
+  .medbtn .d{font-size:10px;color:var(--mute);font-weight:600;margin-top:2px;}
+  .medbtn.short{border-left:3px solid var(--orange);}
+  .medbtn.proc{border-left:3px solid #7a5cb0;}
+  .medbtn.depot{border-left:3px solid var(--depot);}
+  .medbtn.serm{border-left:3px solid var(--serm);}
+  .medbtn.care{border-left:3px solid var(--care);}
+
+  /* timeline / history rows */
+  .row{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 13px;margin-bottom:7px;display:flex;justify-content:space-between;align-items:center;gap:8px;}
+  .row .l{font-size:13px;font-weight:700;}
+  .row .l .dt{font-size:11px;color:var(--mute);font-weight:600;}
+  .row .r{font-size:12px;font-weight:800;font-variant-numeric:tabular-nums;text-align:right;}
+  .pill{display:inline-block;font-size:10px;font-weight:800;padding:2px 7px;border-radius:5px;color:#fff;}
+  .pill.short{background:var(--orange);}.pill.depot{background:var(--depot);}.pill.serm{background:var(--serm);}.pill.care{background:var(--care);}.pill.proc{background:#7a5cb0;}
+  .del{background:none;border:none;color:var(--mute);font-size:18px;cursor:pointer;padding:0 4px;}
+  .flag-h{color:var(--high);font-weight:800;}
+  .flag-l{color:var(--low);font-weight:800;}
+
+  /* graph */
+  select{width:100%;padding:10px;border:1px solid var(--line);border-radius:9px;font-size:14px;font-family:inherit;background:#fff;margin-bottom:10px;}
+  svg{display:block;width:100%;height:auto;background:#fff;border-radius:10px;border:1px solid var(--line);}
+  .empty{text-align:center;color:var(--mute);font-size:13px;padding:30px 10px;}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;}
+  .chip{border:1px solid var(--line);background:#fff;border-radius:20px;padding:7px 13px;font-size:13px;cursor:pointer;font-family:inherit;}
+  .chip.on{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .field label{display:block;font-size:12px;font-weight:700;color:var(--navy);margin-bottom:6px;}
+  .field{margin-bottom:13px;}
+  textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:10px;font-size:14px;font-family:inherit;}
+  /* voice */
+  .mic{flex:1;border:none;border-radius:26px;padding:14px;font-size:15px;font-weight:800;font-family:inherit;cursor:pointer;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;gap:9px;}
+  .mic.rec{background:var(--rec);animation:pulse 1.3s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.72}}
+  .mic .dot{width:11px;height:11px;border-radius:50%;background:#fff;}
+  .txtbtn{background:#eee9df;border:none;border-radius:26px;padding:14px 16px;font-size:15px;font-weight:800;font-family:inherit;cursor:pointer;color:var(--ink);}
+  .heard{font-size:13px;color:var(--ink);text-align:center;min-height:0;margin-top:8px;}
+  .heard:empty{margin:0;}
+  .heard .interim{color:var(--mute);}
+  .status{font-size:11px;text-align:center;color:var(--care);min-height:0;margin-top:4px;font-weight:700;}
+  .status.err{color:var(--rec);}
+  .status:empty{margin:0;}
+  .vhint{font-size:11px;color:var(--mute);line-height:1.5;margin-top:8px;}
+  .vlog-ex{margin-top:10px;}
+  .vlog-ex .vh{display:flex;justify-content:space-between;align-items:baseline;}
+  .vlog-ex .vn{font-size:14px;font-weight:800;color:var(--navy);}
+  .vlog-ex .vm{font-size:10px;color:var(--care);font-weight:700;}
+  .vset{display:flex;align-items:center;gap:8px;background:#faf8f4;border:1px solid var(--line);border-radius:8px;padding:7px 10px;margin-top:4px;}
+  .vset .sn{width:18px;height:18px;border-radius:50%;background:#eee9df;color:var(--mute);font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+  .vset .wr{flex:1;font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;}
+  .vset .wr small{font-weight:600;color:var(--mute);font-size:11px;}
+  .vset .j{font-size:13px;font-weight:800;}
+  .vset .del{background:none;border:none;color:var(--mute);font-size:17px;cursor:pointer;}
+  .feedback{background:linear-gradient(135deg,#fbf4ea,#f6efe2);border:1px solid #e8d5bf;border-radius:9px;padding:9px 12px;margin-top:6px;font-size:12.5px;line-height:1.55;color:#5a3c16;}
+  .feedback .who{font-size:9.5px;font-weight:800;color:var(--orange-d);letter-spacing:.06em;margin-bottom:2px;}
+  .spin{width:13px;height:13px;border:2px solid #cfe0e3;border-top-color:var(--care);border-radius:50%;animation:sp .7s linear infinite;display:inline-block;vertical-align:middle;}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .modal{position:fixed;inset:0;background:rgba(15,36,64,.5);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;}
+  .modal.on{display:flex;}
+  .modal .box{background:#fff;border-radius:14px;padding:18px;max-width:460px;width:100%;}
+  /* no-alcohol */
+  .na-hero{background:linear-gradient(135deg,#1a6b4a,#2f8f5f);color:#fff;border-radius:14px;padding:18px;text-align:center;margin-bottom:12px;box-shadow:0 3px 10px rgba(15,60,40,.18);}
+  .na-hero .pct{font-size:44px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;}
+  .na-hero .pct small{font-size:18px;font-weight:700;opacity:.85;}
+  .na-hero .sub{font-size:13px;opacity:.95;margin-top:6px;}
+  .na-hero .meter{height:12px;background:rgba(255,255,255,.25);border-radius:8px;margin-top:12px;overflow:hidden;position:relative;}
+  .na-hero .meter .fill{height:100%;background:#ffdd66;border-radius:8px;transition:width .5s;}
+  .na-hero .meter .goal{position:absolute;top:-3px;bottom:-3px;width:2px;background:#fff;}
+  .na-hero .goaltxt{font-size:11px;opacity:.9;margin-top:6px;}
+  .na-hero.achieved{background:linear-gradient(135deg,#c46a1f,#e8a24a);}
+  .na-hero .msg{font-size:14px;font-weight:800;margin-top:10px;background:rgba(255,255,255,.18);border-radius:8px;padding:8px;}
+  .na-today{background:#2f8f5f;color:#fff;margin-bottom:12px;font-size:15px;}
+  .na-today.on{background:#eee9df;color:var(--ink);}
+  .na-badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;justify-content:center;}
+  .na-badge{font-size:11px;font-weight:800;padding:6px 11px;border-radius:20px;background:#f1ede4;color:var(--mute);border:1px solid var(--line);}
+  .na-badge.got{background:#fff6e0;color:#c46a1f;border-color:#e6d5ac;}
+  .na-cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .na-cal-head span{font-size:15px;font-weight:800;color:var(--navy);}
+  .na-nav{background:#eee9df;border:none;border-radius:8px;width:38px;height:38px;font-size:18px;font-weight:800;cursor:pointer;color:var(--navy);font-family:inherit;}
+  .na-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+  .na-dow{text-align:center;font-size:10px;font-weight:700;color:var(--mute);padding:2px 0;}
+  .na-cell{aspect-ratio:1;border-radius:9px;border:1px solid var(--line);background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:12px;font-weight:700;color:var(--ink);position:relative;}
+  .na-cell.empty{border:none;background:none;cursor:default;}
+  .na-cell.on{background:linear-gradient(135deg,#d6f0e0,#eaf7ee);border-color:#9fd8b6;}
+  .na-cell.on .ic{font-size:16px;}
+  .na-cell.today{box-shadow:0 0 0 2px var(--orange);}
+  .na-cell .dnum{font-size:10px;color:var(--mute);position:absolute;top:3px;left:5px;}
+  .na-cell.future{opacity:.4;cursor:default;}
+  .sec-t2{font-size:12.5px;font-weight:800;color:var(--navy);margin:12px 2px 8px;}
+  .recbox{background:linear-gradient(135deg,#fff6ec,#fdf0e0);border:1px solid #e8cfa8;}
+  .recbox .rechd{font-size:13px;font-weight:800;color:var(--orange-d);margin-bottom:5px;}
+  .recbox .recnote{font-size:11.5px;color:#7a5a2e;line-height:1.5;margin-bottom:9px;}
+  .recbox .recrow{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-top:1px solid #efdcc0;}
+  .recbox .recn{font-size:13px;font-weight:700;color:var(--navy);}
+  .recbox .recs{font-size:12px;font-weight:800;color:var(--orange-d);font-variant-numeric:tabular-nums;}
+  .recbox .rechint{font-size:10.5px;color:var(--mute);margin-top:8px;}
+  .trec-ex{background:#faf8f4;border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin-bottom:6px;}
+  .trec-ex .tn{font-size:13px;font-weight:800;color:var(--navy);display:flex;justify-content:space-between;align-items:baseline;}
+  .trec-ex .tp{font-size:10px;color:var(--care);font-weight:700;}
+  .trec-ex .tsets{font-size:12.5px;color:var(--ink);margin-top:3px;font-variant-numeric:tabular-nums;}
+  .trec-empty{color:var(--mute);font-size:12.5px;padding:10px;text-align:center;}
+  .hitem{background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-bottom:8px;overflow:hidden;}
+  .hitem .hhd{padding:11px 13px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;}
+  .hitem .hhd .hd-l{font-size:13px;font-weight:800;color:var(--navy);}
+  .hitem .hhd .hd-l .parts{font-size:10.5px;color:var(--care);font-weight:700;margin-left:6px;}
+  .hitem .hhd .hd-r{font-size:11px;color:var(--mute);font-variant-numeric:tabular-nums;}
+  .hitem .hbody{display:none;padding:0 13px 11px;}
+  .hitem.open .hbody{display:block;}
+  .hitem .hex{font-size:12px;margin-top:5px;}
+  .hitem .hex b{color:var(--navy);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="t">ANZU · TRT & TRAINING TRACKER</div>
+    <h1>統合トラッカー</h1>
+    <div class="date" id="today"></div>
+  </header>
+  <div class="tabs">
+    <button class="on" data-tab="log">トレ</button>
+    <button data-tab="labs">血液</button>
+    <button data-tab="med">薬剤</button>
+    <button data-tab="inbody">InBody</button>
+    <button data-tab="import">取込</button>
+    <button data-tab="graph">推移</button>
+    <button data-tab="hist">履歴</button>
+    <button data-tab="noalc">🍵 ノンアル</button>
+  </div>
+
+  <!-- TRAINING -->
+  <div class="view on" id="view-log">
+    <div class="sec-t2">部位を選んで入力（複数選択OK・肩＋脚の日も可）</div>
+    <div class="days" id="partSel"></div>
+    <div class="hint" id="partNote"></div>
+    <div id="exList"></div>
+    <div class="hint" style="margin-top:2px;">各セットを入力して「記録」を押すと即保存されます。部位を切り替えても消えないので、サーキットで種目を行き来してもOK。</div>
+
+    <div class="sec-t2" style="margin-top:16px;">📋 今日の記録</div>
+    <div id="todayRecord"></div>
+
+    <button class="btn" style="background:var(--navy);color:#fff;margin-top:12px;" onclick="app.exportTrainingText()">📋 トレ＋薬剤を書き出す（Claudeに貼って相談）</button>
+    <div id="trOut" style="margin-top:8px;"></div>
+    <div class="hint" style="margin-top:8px;">書き出したテキストを Claude のチャットに貼ると、推移の分析・賞賛・次の一手を返してもらえます（血液やTRTも踏まえた助言が可能）。</div>
+    <div class="hint" style="margin-top:6px;">判定 <b style="color:var(--up)">↑</b>前回超え（漸進性過負荷OK） ／ <span style="color:var(--same)">→</span>同等。<b>毎回1つでも前回を上回る</b>のが停滞打破の鍵。目標は前回実績から自動表示されます。</div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="view" id="view-hist">
+    <div class="sec-t">過去のトレーニング履歴</div>
+    <div class="hint">日付をタップで詳細を開閉。前回比の↑も表示されます。</div>
+    <div id="histList"></div>
+  </div>
+
+  <!-- NO-ALCOHOL -->
+  <div class="view" id="view-noalc">
+    <div class="na-hero" id="naHero"></div>
+    <button class="btn na-today" id="naTodayBtn" onclick="app.toggleNoAlc()"></button>
+    <div class="na-badges" id="naBadges"></div>
+    <div class="na-cal-head">
+      <button class="na-nav" onclick="app.naMonth(-1)">‹</button>
+      <span id="naMonthLabel"></span>
+      <button class="na-nav" onclick="app.naMonth(1)">›</button>
+    </div>
+    <div class="na-cal" id="naCal"></div>
+    <div class="hint" style="margin-top:10px;">🍵 = ノンアル達成日。日付をタップでオン/オフ。連続記録を伸ばそう。</div>
+  </div>
+
+  <!-- LABS -->
+  <div class="view" id="view-labs">
+    <div class="sec-t">採血結果を入力</div>
+    <input type="date" class="datein" id="labDate">
+    <div class="card">
+      <div class="labgrid" id="labKey"></div>
+      <details>
+        <summary>▼ 詳細項目（血算・肝腎・電解質など）</summary>
+        <div class="labgrid" id="labDetail" style="margin-top:8px;"></div>
+      </details>
+    </div>
+    <button class="btn primary" onclick="app.saveLab()">採血を保存</button>
+    <div class="sec-t" style="margin-top:16px;">記録済みの採血</div>
+    <div id="labHist"></div>
+  </div>
+
+  <!-- MED -->
+  <div class="view" id="view-med">
+    <div class="sec-t">連日内服（継続中）</div>
+    <div class="hint">一度設定すると、上書き（変更・中止）まで毎日内服として扱います。都度入力は不要です。</div>
+    <div id="ongoingList"></div>
+    <div class="medbtns" id="ongoingBtns" style="margin-top:8px;"></div>
+    <div class="sec-t" style="margin-top:16px;">単回投与を記録（タップ）</div>
+    <input type="date" class="datein" id="medDate">
+    <div class="medbtns" id="medBtns"></div>
+    <div class="hint">タップした日付で投与を記録します。用量は標準値が入ります（あとで履歴から編集可）。</div>
+
+    <div class="sec-t" style="margin-top:16px;">施術を記録（タップ）</div>
+    <input type="date" class="datein" id="procDate">
+    <input class="datein" id="procNote" placeholder="部位・箇所数など（例：下腹部・浮き輪 5箇所）" style="margin-bottom:8px;">
+    <div class="medbtns" id="procBtns"></div>
+    <div class="hint">クールスカルプティング等の施術を、上の日付・メモで記録します。投与履歴に並びます。</div>
+
+    <div class="sec-t" style="margin-top:12px;">投与・施術の履歴</div>
+    <div id="medHist"></div>
+  </div>
+
+  <!-- IMPORT -->
+  <div class="view" id="view-import">
+    <div class="sec-t">チャットから取り込み</div>
+    <div class="hint">Claudeのチャットに検査結果やInBodyのスクショ／PDFを上げ、返ってきた取込用テキスト（JSON）をここに貼り付けて「取り込む」を押すと、血液・InBodyに自動反映されます。手入力は不要です。</div>
+    <div class="card">
+      <textarea id="importText" rows="6" placeholder='ここにClaudeが出力したJSONを貼り付け…&#10;例：{"labs":[{"date":"2026-07-13","vals":{"tT":2000,"E2":35,"Ht":48.5}}],"inbody":[{"date":"2026-07-13","vals":{"wt":66.5,"smm":32.8},"noise":false}]}'></textarea>
+      <button class="btn primary" style="margin-top:10px;" onclick="app.doImport()">取り込む</button>
+      <div id="importResult" style="margin-top:10px;"></div>
+    </div>
+    <div class="hint" style="margin-top:6px;">※ 同じ日付のデータは上書きされます。取り込み後は「血液」「InBody」「推移」タブで確認できます。</div>
+
+    <div class="sec-t" style="margin-top:18px;">バックアップ・復元</div>
+    <div class="hint">記録はこの端末のブラウザ内に保存されます。機種変更・ブラウザ更新で消えないよう、時々バックアップを取ってください。</div>
+    <div class="card">
+      <button class="btn primary" onclick="app.exportData()">📤 バックアップを書き出す（ファイル保存）</button>
+      <div class="hint" style="margin:8px 0 4px;">↑ 全データ（トレ・血液・薬剤・InBody）をファイルに保存。メールやメモに貼れる形でコピーもできます。</div>
+      <button class="btn" style="background:#eee9df;margin-top:6px;" onclick="app.copyData()">📋 バックアップをコピー</button>
+      <div style="border-top:1px solid var(--line);margin:14px 0 10px;"></div>
+      <div class="hint" style="margin-bottom:6px;">復元：バックアップの中身を下に貼り付けて「復元」。<b style="color:var(--warn);">現在のデータは置き換わります。</b></div>
+      <textarea id="restoreText" rows="4" placeholder="バックアップJSONを貼り付け…"></textarea>
+      <button class="btn" style="background:#eee9df;margin-top:8px;" onclick="app.restoreData()">♻ この内容で復元</button>
+      <div id="backupResult" style="margin-top:10px;"></div>
+    </div>
+  </div>
+
+  <!-- INBODY -->
+  <div class="view" id="view-inbody">
+    <div class="sec-t">InBody を入力</div>
+    <input type="date" class="datein" id="ibDate">
+    <div class="card">
+      <div class="labgrid" id="ibFields"></div>
+      <div class="hint">火 or 水のトレ前・夕食前など、毎回同じ条件で測ると推移が正確になります。</div>
+    </div>
+    <button class="btn primary" onclick="app.saveIB()">InBodyを保存</button>
+    <div class="sec-t" style="margin-top:16px;">記録済み</div>
+    <div id="ibHist"></div>
+  </div>
+
+  <!-- GRAPH -->
+  <div class="view" id="view-graph">
+    <select id="graphSel"></select>
+    <svg id="graph" viewBox="0 0 620 300"></svg>
+    <div class="hint" id="graphNote"></div>
+  </div>
+
+  <!-- COND removed -->
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ================= MENU =================
+const MENU=[
+  {part:"胸",note:"上部・左肩保護。①は休んでストレートで RIR1〜2。",
+   recNote:"増量期：胸上部（弱点）を最優先。中レップで効かせる。左肩は低重量・低速。",
+   rec:[{n:"インクライン・ダンベルプレス",s:"4×8-12"},{n:"チェストプレス（マシン）",s:"3×10-12"},{n:"ペックフライ（マシン）",s:"3×12-15"},{n:"ケーブル・サイドレイズ（片腕）",s:"3×15-20"}],
+   ex:[{n:"インクライン・ダンベルプレス",t:"上部 ｜ 12–15回",w:17.5,star:true},{n:"チェストプレス（マシン）",t:"固定軌道 ｜ 15回"},{n:"ペックフライ（マシン）",t:"内側収縮 ｜ 15–20回"}]},
+  {part:"背中",note:"Vシェイプ・広がり優先。周回3〜4。",
+   recNote:"増量期：V字の広がりを最優先。週2回刺激（この日は広がり）。",
+   rec:[{n:"ラットプルダウン（ワイド）",s:"4×10-12"},{n:"シーテッドロー（ケーブル）",s:"3×10-12"},{n:"ラットプルダウン（リバース）",s:"3×12"},{n:"プルオーバー（ケーブル）",s:"3×15"}],
+   ex:[{n:"★ラットプルダウン（ワイド）",t:"横の広がり ｜ 12–15回",w:40,star:true},{n:"シーテッドロー（ケーブル）",t:"厚み ｜ 12回",w:40},{n:"ラットプルダウン（リバース）",t:"広背下部 ｜ 12回"},{n:"プルオーバー（ケーブル）",t:"左肩休め単離 ｜ 15回",w:30}]},
+  {part:"肩",note:"プレス排除・側部最優先。左は片腕低速。",
+   recNote:"増量期：肩の丸みとV字づくり。側部・後部を高回数で。プレスは避ける。",
+   rec:[{n:"リバースペックフライ",s:"4×15-20"},{n:"ケーブル・サイドレイズ（片腕）",s:"3×15-20"},{n:"ケーブル・フロントレイズ",s:"3×15-20"}],
+   ex:[{n:"★ケーブル・サイドレイズ（片腕）",t:"真横の張り出し ｜ 15–20回",w:12.5,star:true},{n:"ケーブル・フロントレイズ",t:"ニュートラル左肩保護 ｜ 15–20回",w:12.5},{n:"リバースペックフライ",t:"肩後部 ｜ 15–20回",w:30}]},
+  {part:"脚",note:"カット・代謝。腰・肩を守る。周回4。",
+   recNote:"増量期：スクワットは高重量を丁寧に維持（MAX追いはしない）。他は中レップ。",
+   rec:[{n:"スクワット",s:"3×8-10（維持）"},{n:"レッグプレス",s:"3×12-15"},{n:"レッグカール",s:"3×12-15"},{n:"レッグエクステンション",s:"3×15-20"}],
+   ex:[{n:"レッグプレス",t:"四頭 高重量 ｜ 15回"},{n:"レッグカール",t:"腿裏 ｜ 12–15回",w:30},{n:"レッグエクステンション",t:"トップ静止 ｜ 15–20回"}]},
+  {part:"腕",note:"関節保護。前半ケーブル／後半ベンチ。",
+   recNote:"増量期：関節保護で中レップ。RDLで背中の厚みも（デッド代替・腰肩保護）。",
+   rec:[{n:"ケーブル・バイセプスカール",s:"3×12-15"},{n:"ケーブル・プレスダウン",s:"3×12-15"},{n:"プリチャーカール",s:"3×12"},{n:"RDL（ルーマニアンデッド）",s:"3×10-12"}],
+   ex:[{n:"ケーブル・バイセプスカール",t:"二頭 ｜ 12–15回",w:35},{n:"ケーブル・プレスダウン",t:"三頭 ｜ 12–15回"},{n:"プリチャーカール",t:"ピーク ｜ 12回"},{n:"ニュートラルDBエクステンション",t:"肘肩保護 ｜ 12–15回"}]},
+  {part:"弱点",note:"背中厚み・肩側部・リア（週2回目）。周回4。",
+   recNote:"増量期：Day4相当。肩後部・背中の厚み・RDLで弱点を週2回目の刺激。",
+   rec:[{n:"リバースペックフライ",s:"4×15-20"},{n:"ケーブル・サイドレイズ（片腕）",s:"3×15-20"},{n:"シーテッドロー（ケーブル）",s:"3×10-12"},{n:"RDL（ルーマニアンデッド）",s:"3×10-12"}],
+   ex:[{n:"シーテッドロー（ケーブル）",t:"厚み ｜ 12回",w:40},{n:"★ケーブル・サイドレイズ（片腕）",t:"張り出し ｜ 15–20回",w:12.5,star:true},{n:"リバースペックフライ",t:"肩後部 ｜ 15–20回",w:30}]},
+];
+// ================= LAB DEFS =================
+const LAB_KEY=[
+  {k:"tT",n:"総テストステロン",u:"ng/dL",lo:142.4,hi:923.1},
+  {k:"fT",n:"遊離テストステロン",u:"pg/mL"},
+  {k:"E2",n:"エストラジオール",u:"pg/mL",lo:19,hi:51},
+  {k:"Ht",n:"ヘマトクリット",u:"%",lo:40.4,hi:51.9,alert:50},
+  {k:"Hb",n:"血色素量",u:"g/dL",lo:13.6,hi:18.3},
+  {k:"HDL",n:"HDL",u:"mg/dL",lo:40,hi:80},
+  {k:"eGFR",n:"eGFR",u:"mL/min"},
+  {k:"PRL",n:"プロラクチン",u:"ng/mL",lo:3.6,hi:12.8},
+];
+const LAB_DETAIL=[
+  {k:"LH",n:"LH",u:"mIU/mL",lo:0.8,hi:5.7},{k:"FSH",n:"FSH",u:"mIU/mL",lo:2.0,hi:8.3},
+  {k:"LDL",n:"LDL",u:"mg/dL",lo:70,hi:139},{k:"TG",n:"中性脂肪",u:"mg/dL",lo:50,hi:149},
+  {k:"AST",n:"AST",u:"U/L",lo:10,hi:40},{k:"ALT",n:"ALT",u:"U/L",lo:5,hi:45},
+  {k:"CK",n:"CK",u:"U/L",lo:50,hi:230},{k:"Cr",n:"クレアチニン",u:"mg/dL",lo:0.65,hi:1.09},
+  {k:"WBC",n:"白血球",u:"/μL",lo:3500,hi:9700},{k:"RBC",n:"赤血球",u:"万/μL",lo:438,hi:577},
+  {k:"UA",n:"尿酸",u:"mg/dL",lo:3.6,hi:7.0},{k:"Na",n:"Na",u:"mEq/L",lo:135,hi:145},
+];
+const LAB_ALL=[...LAB_KEY,...LAB_DETAIL];
+const MEDS=[
+  {k:"エナルモンデポ",dose:"250mg",cls:"short"},{k:"エナルモンデポ",dose:"60mg",cls:"short"},
+  {k:"ネビド",dose:"1000mg",cls:"depot"},{k:"タモキシフェン",dose:"10mg",cls:"serm"},
+  {k:"アナストロゾール",dose:"0.5mg",cls:"care"},{k:"hCG",dose:"3000IU",cls:"care"},
+];
+const IB_FIELDS=[{k:"wt",n:"体重",u:"kg"},{k:"smm",n:"骨格筋量",u:"kg"},{k:"mm",n:"筋肉量",u:"kg"},{k:"fat",n:"体脂肪量",u:"kg"},{k:"pbf",n:"体脂肪率",u:"%"}];
+// 施術（クールスカルプティング等）の候補ボタン
+const PROC_OPTS=[
+  {name:"クールスカルプティング",cls:"proc"},
+  {name:"脂肪冷却",cls:"proc"},
+  {name:"HIFU",cls:"proc"},
+  {name:"脂肪溶解注射",cls:"proc"},
+];
+// 連日内服の候補（開始ボタン用）
+const ONGOING_OPTS=[
+  {name:"デュタステリド",dose:"0.5mg",cls:"care"},
+  {name:"タモキシフェン",dose:"10mg",cls:"serm"},
+  {name:"タモキシフェン",dose:"20mg",cls:"serm"},
+  {name:"アナストロゾール",dose:"0.5mg",cls:"care"},
+  {name:"アナストロゾール",dose:"0.25mg",cls:"care"},
+  {name:"EPA",dose:"内服",cls:"care"},
+];
+
+// ================= STORAGE + SEED =================
+const KEY="anzu_tracker_v1";
+function load(){try{return JSON.parse(localStorage.getItem(KEY));}catch(e){return null;}}
+function persist(){localStorage.setItem(KEY,JSON.stringify(DB));}
+let DB=load();
+if(DB&&!DB.ongoing)DB.ongoing=[];
+if(DB&&!DB.customEx)DB.customEx={};
+if(DB&&!DB.procedures)DB.procedures=[];
+if(DB&&!DB.noAlc)DB.noAlc={};
+// 一度だけ：7/13のクールスカルプティングを登録（既存ユーザー向け）
+if(DB&&DB.procedures&&!DB._csAdded){
+  if(!DB.procedures.some(p=>p.date==="2026-07-13"&&p.name==="クールスカルプティング"))
+    DB.procedures.push({date:"2026-07-13",name:"クールスカルプティング",note:"下腹部・浮き輪エリア 5箇所",cls:"proc"});
+  DB._csAdded=true;localStorage.setItem("anzu_tracker_v1",JSON.stringify(DB));
+}
+// 一度だけ：7/13のInBodyを登録
+if(DB&&DB.inbody&&!DB._ib0713Added){
+  DB.inbody=DB.inbody.filter(x=>x.date!=="2026-07-13");
+  DB.inbody.push({date:"2026-07-13",vals:{wt:67.1,smm:32.4,mm:54.1,fat:9.8,pbf:14.7},noise:false});
+  DB.inbody.sort((a,b)=>a.date<b.date?-1:1);
+  DB._ib0713Added=true;localStorage.setItem("anzu_tracker_v1",JSON.stringify(DB));
+}
+// 一度だけ：全InBodyを正式データ化（参考外フラグを解除）
+if(DB&&DB.inbody&&!DB._ibAllOfficial){
+  DB.inbody.forEach(x=>{x.noise=false;});
+  DB._ibAllOfficial=true;localStorage.setItem("anzu_tracker_v1",JSON.stringify(DB));
+}
+// 一度だけ：朝イチ体重（体重のみの点）をInBodyへ投入。既存の測定日は上書きしない
+if(DB&&DB.inbody&&!DB._amWeightAdded){
+  const _wt={
+    "2026-03-12":70,"2026-03-13":70.1,"2026-03-14":69,"2026-03-16":68.8,"2026-03-17":69.8,"2026-03-18":70.2,"2026-03-19":69.8,"2026-03-23":70.7,"2026-03-24":70.4,"2026-03-26":69,"2026-03-27":69.3,"2026-03-28":70,"2026-03-29":69.6,"2026-03-30":69.9,"2026-03-31":69.2,
+    "2026-04-01":69.4,"2026-04-04":68.6,"2026-04-05":68.2,"2026-04-06":68.6,"2026-04-07":68.4,"2026-04-08":68.3,"2026-04-09":67.9,"2026-04-10":67.7,"2026-04-11":68.3,"2026-04-13":69,"2026-04-14":70.3,"2026-04-15":69.9,"2026-04-16":69.4,"2026-04-17":69.5,"2026-04-18":69.8,"2026-04-19":69.4,"2026-04-20":69.7,"2026-04-21":69.3,"2026-04-22":69.5,"2026-04-23":69.7,"2026-04-24":69.7,"2026-04-25":68.9,"2026-04-26":69.2,"2026-04-27":69.5,"2026-04-29":68.5,"2026-04-30":68.4,
+    "2026-05-01":69.3,"2026-05-02":69.4,"2026-05-03":70.8,"2026-05-04":70.1,"2026-05-05":69.4,"2026-05-07":67.4,"2026-05-08":68.3,"2026-05-09":67.3,"2026-05-10":67.9,"2026-05-11":67.9,"2026-05-12":67.3,"2026-05-13":67.2,"2026-05-14":67.7,"2026-05-15":68,"2026-05-16":68,"2026-05-17":69.4,"2026-05-18":68.5,"2026-05-19":68.2,"2026-05-20":68,"2026-05-21":67.7,"2026-05-22":68.7,"2026-05-23":68,"2026-05-24":69,"2026-05-25":68.4,"2026-05-26":68.8,"2026-05-27":67.8,"2026-05-28":67.9,"2026-05-29":67.8,"2026-05-30":67.6,"2026-05-31":67.7,
+    "2026-06-01":68,"2026-06-02":67.8,"2026-06-03":67.4,"2026-06-04":68,"2026-06-05":68,"2026-06-06":66.9,"2026-06-07":67.6,"2026-06-08":68.3,"2026-06-09":67.3,"2026-06-10":67.6,"2026-06-11":68.7,"2026-06-12":67.7,"2026-06-14":67.1,"2026-06-16":68,"2026-06-17":67.7,"2026-06-18":68.6,"2026-06-19":67.7,"2026-06-22":67.4,"2026-06-23":67.6,"2026-06-24":68.2,"2026-06-29":68.9,"2026-06-30":68.2,
+    "2026-07-01":67.7,"2026-07-02":68.5,"2026-07-07":68.1,"2026-07-08":66.6,"2026-07-09":66.8,"2026-07-10":67.5,"2026-07-11":67.6,"2026-07-13w":67.5,"2026-07-15w":67.8,"2026-07-16":65.9,"2026-07-17":66.4
+  };
+  Object.keys(_wt).forEach(k=>{const date=k.replace(/w$/,"");
+    if(DB.inbody.some(x=>x.date===date))return; // 既存の測定日は触らない
+    DB.inbody.push({date,vals:{wt:_wt[k]},noise:false,amWt:true});
+  });
+  DB.inbody.sort((a,b)=>a.date<b.date?-1:1);
+  DB._amWeightAdded=true;localStorage.setItem("anzu_tracker_v1",JSON.stringify(DB));
+}
+// 一度だけ：過去のBIG3履歴を投入（7/15は既存のため除外）
+if(DB&&DB.training&&!DB._big3HistAdded){
+  const _b3={
+    "スクワット":{part:"脚",days:{
+      "2026-06-02":[[60,10],[70,10],[80,10],[82.5,10]],
+      "2026-06-08":[[65,10],[75,10],[82.5,10],[85,10]],
+      "2026-06-24":[[75,10],[80,10],[85,10],[90,10]],
+      "2026-07-01":[[80,10],[90,10],[92.5,10],[85,10]],
+      "2026-07-07":[[82.5,10],[95,10],[87.5,10],[82.5,10]]}},
+    "デッドリフト":{part:"背中",days:{
+      "2026-06-02":[[65,10],[70,10],[80,10]],
+      "2026-06-08":[[75,10],[80,10],[82.5,10]],
+      "2026-06-24":[[80,10],[85,10],[85,10]],
+      "2026-07-01":[[82.5,10],[87.5,10],[80,10]],
+      "2026-07-07":[[85,10],[90,10],[90,10]]}},
+    "ベンチプレス":{part:"胸",days:{
+      "2026-06-02":[[60,10],[70,10],[70,9],[65,6]],
+      "2026-06-08":[[70,10],[75,10],[80,5],[72.5,9]],
+      "2026-06-24":[[75,10],[80,7],[77.5,6],[65,10]],
+      "2026-07-01":[[75,10],[80,10],[70,7],[60,9]],
+      "2026-07-07":[[70,10],[75,10],[72.5,10],[60,10]]}},
+  };
+  // 既存の7/15エントリから、その種目に使われている正式な名前とpartを継承
+  const _findPart=(nm,def)=>{for(const s of DB.training){const e=s.exercises.find(x=>x.name===nm);if(e&&e.part)return e.part;}return def;};
+  Object.keys(_b3).forEach(nm=>{const cfg=_b3[nm];const part=_findPart(nm,cfg.part);
+    Object.keys(cfg.days).forEach(date=>{
+      let sess=DB.training.find(s=>s.date===date);
+      if(!sess){sess={date,exercises:[]};DB.training.push(sess);}
+      if(sess.exercises.some(e=>e.name===nm))return; // 既にあれば触らない
+      sess.exercises.push({name:nm,part,sets:cfg.days[date].map(([w,r])=>({w:String(w),r:String(r),rir:""}))});
+    });});
+  DB.training.sort((a,b)=>a.date<b.date?-1:1);
+  DB._big3HistAdded=true;localStorage.setItem("anzu_tracker_v1",JSON.stringify(DB));
+}
+// 一度だけ：7/6を正しい値(T2214.8)に戻し、7/13(T2572.7)を別日として追加
+if(DB&&DB.labs&&!DB._lab0706v3){
+  DB.labs=DB.labs.filter(x=>x.date!=="2026-07-06"&&x.date!=="2026-07-13");
+  DB.labs.push({date:"2026-07-06",vals:{tT:2214.8,E2:34.1,Ht:48.7,Hb:15.6,HDL:58,eGFR:63.1,PRL:14.2,LH:0.2,FSH:0.3,LDL:83,TG:70,AST:32,ALT:25,CK:304,Cr:1.04,WBC:5170,RBC:535,UA:6.1,Na:140}});
+  DB.labs.push({date:"2026-07-13",vals:{tT:2572.7,E2:52.9,Ht:49.6,Hb:15.7,HDL:52,eGFR:61.2,PRL:11.7,LH:0.2,FSH:0.3,LDL:90,TG:76,AST:32,ALT:32,CK:325,Cr:1.07,WBC:4890,RBC:544,UA:6.2,Na:141}});
+  DB.labs.sort((a,b)=>a.date<b.date?-1:1);
+  DB._lab0706v3=true;localStorage.setItem("anzu_tracker_v1",JSON.stringify(DB));
+}
+// 一度だけ：7/13 エナルモンデポ60mg 投与を登録
+if(DB&&DB.meds&&!DB._med0713Added){
+  if(!DB.meds.some(m=>m.date==="2026-07-13"&&m.name==="エナルモンデポ"&&m.dose==="60mg"))
+    DB.meds.push({date:"2026-07-13",name:"エナルモンデポ",dose:"60mg",cls:"short"});
+  DB.meds.sort((a,b)=>a.date<b.date?-1:1);
+  DB._med0713Added=true;localStorage.setItem("anzu_tracker_v1",JSON.stringify(DB));
+}
+if(!DB){
+  DB={training:[],labs:[],meds:[],inbody:[],ongoing:[],customEx:{},procedures:[],noAlc:{},cond:{},seeded:true};
+  // seed labs
+  const L=[
+    ["2026-05-13",{tT:794.4,fT:13.2,E2:28.7,Ht:47.2,Hb:14.8,HDL:77,eGFR:78.3,PRL:10.3,LH:3.9,FSH:3.2,LDL:117,TG:48,AST:20,ALT:14,CK:178,Cr:0.86,WBC:2910,RBC:509,UA:6.4,Na:140}],
+    ["2026-05-25",{tT:3460.2,fT:49.5,E2:64.5,Ht:44.6,Hb:14.3,HDL:66,eGFR:73.6,PRL:17.6,LH:1.2,FSH:0.5,LDL:90,TG:46,AST:21,ALT:14,CK:224,Cr:0.91,WBC:3800,RBC:496,UA:5.1,Na:138}],
+    ["2026-06-01",{tT:2110.8,fT:30.4,E2:53.5,Ht:44.3,Hb:14.3,HDL:54,eGFR:70.2,PRL:17.4,LH:0.1,FSH:0.2,LDL:78,TG:82,AST:25,ALT:20,CK:234,Cr:0.95,WBC:4270,RBC:494,UA:4.8,Na:138}],
+    ["2026-06-08",{eGFR:67.1,AST:29,ALT:23,CK:470,Cr:0.99}],
+    ["2026-06-15",{tT:2223.7,fT:34.6,E2:43.7,Ht:47.4,Hb:15.5,HDL:60,eGFR:71.8,PRL:7.7,LH:0.2,FSH:0.4,LDL:65,TG:66,AST:28,ALT:22,CK:228,Cr:0.93,WBC:5310,RBC:522,UA:5.1,Na:138}],
+    ["2026-06-22",{tT:2970.6,fT:44.1,E2:61.1,Ht:48.2,Hb:15.2,HDL:60,eGFR:66.4,PRL:13.6,LH:0.2,FSH:0.4,LDL:76,TG:51,AST:28,ALT:21,CK:241,Cr:1.00,WBC:5350,RBC:522,UA:5.1,Na:137}],
+    ["2026-06-30",{tT:3112.3,fT:45.6,E2:57.2,Ht:49.4,Hb:16.0,HDL:59,eGFR:66.4,PRL:10.2,LH:0.2,FSH:0.3,LDL:86,TG:72,AST:25,ALT:22,CK:273,Cr:1.00,WBC:4440,RBC:546,UA:5.2,Na:142}],
+    ["2026-07-06",{tT:2214.8,E2:34.1,Ht:48.7,Hb:15.6,HDL:58,eGFR:63.1,PRL:14.2,LH:0.2,FSH:0.3,LDL:83,TG:70,AST:32,ALT:25,CK:304,Cr:1.04,WBC:5170,RBC:535,UA:6.1,Na:140}],
+    ["2026-07-13",{tT:2572.7,E2:52.9,Ht:49.6,Hb:15.7,HDL:52,eGFR:61.2,PRL:11.7,LH:0.2,FSH:0.3,LDL:90,TG:76,AST:32,ALT:32,CK:325,Cr:1.07,WBC:4890,RBC:544,UA:6.2,Na:141}],
+  ];
+  DB.labs=L.map(([date,v])=>({date,vals:v}));
+  // seed meds
+  DB.meds=[
+    ["2026-05-13","エナルモンデポ","250mg","short"],["2026-05-16","ネビド","1000mg","depot"],
+    ["2026-05-20","エナルモンデポ","250mg","short"],["2026-05-27","タモキシフェン","20mg","serm"],
+    ["2026-06-03","エナルモンデポ","62.5mg×2","short"],["2026-06-09","タモキシフェン","10mg","serm"],
+    ["2026-06-19","ネビド","1000mg","depot"],["2026-07-13","エナルモンデポ","60mg","short"],
+  ].map(([date,name,dose,cls])=>({date,name,dose,cls}));
+  // seed inbody
+  const IB=[
+    ["2026-05-21",68.3,32.0,null,11.7,null,false],["2026-05-26",67.3,32.4,null,10.1,null,false],
+    ["2026-06-05",67.5,33.1,55.3,9.0,13.3,false],["2026-06-08",67.0,32.2,53.7,10.3,15.4,false],
+    ["2026-06-13",66.3,32.6,54.3,8.9,13.4,false],["2026-06-26",66.6,32.9,54.9,8.5,12.8,false],
+    ["2026-07-01",67.4,33.0,55.3,9.5,14.1,true],["2026-07-07",66.3,32.3,53.7,9.6,14.4,true],
+    ["2026-07-13",67.1,32.4,54.1,9.8,14.7,true],
+  ];
+  DB.inbody=IB.map(([date,wt,smm,mm,fat,pbf,noise])=>({date,vals:{wt,smm,mm,fat,pbf},noise:false}));
+  // seed procedures
+  DB.procedures=[{date:"2026-07-13",name:"クールスカルプティング",note:"下腹部・浮き輪エリア 5箇所",cls:"proc"}];
+  DB._csAdded=true;DB._ib0713Added=true;DB._lab0706v3=true;DB._med0713Added=true;DB._ibAllOfficial=true;DB._amWeightAdded=true;
+  // seed ongoing daily meds (continue until overwritten)
+  DB.ongoing=[
+    {name:"デュタステリド",dose:"0.5mg",cls:"care",start:"2026-05-01",end:null},
+    {name:"タモキシフェン",dose:"10mg",cls:"serm",start:"2026-06-09",end:null},
+  ];
+  persist();
+}
+const todayStr=()=>{const d=new Date(Date.now()-4*3600*1000);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+const jpDate=()=>{const d=new Date(Date.now()-4*3600*1000);const w=["日","月","火","水","木","金","土"][d.getDay()];return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日（${w}）`;};
+document.getElementById("today").textContent=jpDate();
+["labDate","medDate","ibDate","procDate"].forEach(id=>{const e=document.getElementById(id);if(e)e.value=todayStr();});
+
+// ================= APP =================
+const app={
+  partIdx:0,
+  init(){this.partIdx=0;
+    this.renderParts();this.renderEx();this.renderTodayRecord();this.renderLabInputs();this.renderMedBtns();this.renderIBInputs();},
+  toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1600);},
+  // ---- training (part-based, one session per date) ----
+  renderParts(){const el=document.getElementById("partSel");el.innerHTML="";
+    MENU.forEach((m,i)=>{const b=document.createElement("button");b.className=i===this.partIdx?"on":"";
+      b.innerHTML=`${m.part}`;
+      b.onclick=()=>{this.partIdx=i;this.renderParts();this.renderEx();};el.appendChild(b);});
+    document.getElementById("partNote").textContent="▸ "+MENU[this.partIdx].note;},
+  todaySession(create){let s=DB.training.find(x=>x.date===todayStr());
+    if(!s&&create){s={date:todayStr(),exercises:[]};DB.training.push(s);}return s;},
+  // best set of an exercise across PREVIOUS dates (by name, ignore part)
+  lastTr(exName){let res=null;const dates=[...new Set(DB.training.map(s=>s.date))].sort();
+    for(let i=dates.length-1;i>=0;i--){if(dates[i]===todayStr())continue;
+      const s=DB.training.find(x=>x.date===dates[i]);const e=s.exercises.find(x=>x.name===exName);
+      if(e&&e.sets.some(st=>st.w||st.r)){return {date:dates[i],ex:e};}}return res;},
+  best(sets){let b=null;sets.forEach(st=>{const w=parseFloat(st.w)||0,r=parseInt(st.r)||0;if(!b||w>b.w||(w===b.w&&r>b.r))b={w,r};});return b;},
+  // merged exercise list for a part = built-in menu + user custom
+  partEx(idx){const p=MENU[idx].part;return MENU[idx].ex.concat((DB.customEx&&DB.customEx[p])||[]);},
+  isCustom(idx,ei){const p=MENU[idx].part;const base=MENU[idx].ex.length;return ei>=base?((DB.customEx&&DB.customEx[p])||[])[ei-base]:null;},
+  renderEx(){const list=this.partEx(this.partIdx),wrap=document.getElementById("exList");wrap.innerHTML="";
+    const sess=this.todaySession(false);
+    // 増量期の推奨メニュー（上部・表示のみ）
+    const M=MENU[this.partIdx];
+    if(M.rec&&M.rec.length){
+      const recDiv=document.createElement("div");recDiv.className="card recbox";
+      recDiv.innerHTML=`<div class="rechd">🔥 増量期の推奨メニュー</div>
+        <div class="recnote">${M.recNote||""}</div>
+        ${M.rec.map((r,i)=>`<div class="recrow"><span class="recn">${i+1}. ${r.n}</span><span class="recs">${r.s}</span></div>`).join("")}
+        <div class="rechint">↓ 下の登録種目に記録します。過去の記録もそのまま残ります。</div>`;
+      wrap.appendChild(recDiv);
+    }
+    list.forEach((ex,ei)=>{const card=document.createElement("div");card.className="card";
+      const last=this.lastTr(ex.n);let prev="";
+      if(last){const b=this.best(last.ex.sets);prev=`<div class="prev"><span><span class="lbl">前回 ${last.date.slice(5)}</span><br><span class="val">${b.w||"-"}kg × ${b.r||"-"}回</span></span><span class="goal">目標 ▸ ${b.w?b.w+"kgで"+((b.r||0)+1)+"回 or "+(b.w+2.5)+"kg":"基準づくり"}</span></div>`;}
+      else prev=`<div class="prev"><span class="lbl">前回記録なし（初回）</span></div>`;
+      const cust=this.isCustom(this.partIdx,ei);
+      const delBtn=cust?`<button class="del" style="background:none;border:none;color:var(--mute);font-size:16px;cursor:pointer;" onclick="app.delCustomEx(${ei})" title="この種目を削除">🗑</button>`:"";
+      // 今日この種目で記録済みのセット
+      const done=sess?(sess.exercises.find(e=>e.name===ex.n)||{sets:[]}).sets:[];
+      const bestHist=last?this.best(last.ex.sets):null;
+      let doneHtml="";
+      if(done.length){
+        doneHtml='<div class="donesets">'+done.map((st,si)=>{
+          let j="";if(st.w!=null&&bestHist){const w=parseFloat(st.w)||0,r=parseInt(st.r)||0;
+            if(w>bestHist.w||(w===bestHist.w&&r>bestHist.r))j='<span style="color:var(--up);font-weight:800">↑</span>';
+            else if(w===bestHist.w&&r===bestHist.r)j='<span style="color:#b98a2e;font-weight:800">→</span>';}
+          return `<div class="doneset"><span class="dn">${si+1}</span><span class="dv">${st.w!=null&&st.w!==""?st.w:"?"}<small>kg</small> × ${st.r!=null&&st.r!==""?st.r:"?"}<small>回</small></span>${st.rir?'<span class="drir">RIR'+st.rir+'</span>':''}${j}<button class="del" onclick="app.delTodaySet('${ex.n.replace(/'/g,"")}',${si})">×</button></div>`;
+        }).join("")+'</div>';
+      }
+      card.innerHTML=`<div class="ex-h"><div class="ex-num">${ei+1}</div><div style="flex:1"><div class="ex-name">${ex.star?'<span class="ex-star">★</span>':''}${ex.n}${cust?' <span style="font-size:9px;color:var(--care);font-weight:700;">追加</span>':''}</div><div class="ex-target">${ex.t||""}</div></div>${delBtn}</div>${prev}
+        ${doneHtml}
+        <div class="colhead"><span>kg</span><span>回</span><span>RIR</span><span></span></div>
+        <div class="logrow">
+          <input type="number" step="0.5" inputmode="decimal" class="in-w" id="w-${ei}" placeholder="${ex.w||''}">
+          <input type="number" inputmode="numeric" class="in-r" id="r-${ei}" placeholder="回">
+          <input type="number" inputmode="numeric" class="in-rir" id="rir-${ei}" placeholder="1-2">
+          <button class="logbtn" onclick="app.logSet(${ei})">記録</button>
+        </div>`;
+      wrap.appendChild(card);});
+    // add-exercise control
+    const add=document.createElement("div");add.className="card";add.style.padding="12px";
+    add.innerHTML=`<button class="btn" style="background:#eef3f4;color:var(--care);" onclick="app.openAddEx()">＋ この部位に種目を追加</button>
+      <div id="addExForm" style="display:none;margin-top:10px;">
+        <input id="newExName" class="datein" placeholder="種目名（例：ケーブルクロスオーバー）" style="margin-bottom:6px;">
+        <div style="display:flex;gap:6px;margin-bottom:6px;">
+          <input id="newExTarget" class="datein" placeholder="目安（例：15回）" style="margin:0;">
+          <input id="newExW" type="number" step="0.5" class="datein" placeholder="初期kg" style="margin:0;width:90px;">
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn" style="background:#eee9df;" onclick="app.closeAddEx()">やめる</button>
+          <button class="btn primary" onclick="app.addCustomEx()">追加する</button>
+        </div>
+      </div>`;
+    wrap.appendChild(add);},
+  openAddEx(){document.getElementById("addExForm").style.display="block";},
+  closeAddEx(){document.getElementById("addExForm").style.display="none";document.getElementById("newExName").value="";document.getElementById("newExTarget").value="";document.getElementById("newExW").value="";},
+  addCustomEx(){const name=document.getElementById("newExName").value.trim();
+    if(!name){this.toast("種目名を入れてください");return;}
+    const t=document.getElementById("newExTarget").value.trim();const w=document.getElementById("newExW").value;
+    const p=MENU[this.partIdx].part;DB.customEx[p]=DB.customEx[p]||[];
+    if(this.partEx(this.partIdx).some(e=>e.n===name)){this.toast("同名の種目が既にあります");return;}
+    DB.customEx[p].push({n:name,t:t||"",w:w?parseFloat(w):undefined});persist();
+    this.closeAddEx();this.renderEx();this.toast(name+" を追加 ✓");},
+  delCustomEx(ei){const p=MENU[this.partIdx].part;const base=MENU[this.partIdx].ex.length;const ci=ei-base;
+    const arr=DB.customEx[p]||[];if(ci<0||ci>=arr.length)return;
+    if(!confirm(arr[ci].n+" を削除しますか？（記録済みの履歴は残ります）"))return;
+    arr.splice(ci,1);persist();this.renderEx();this.toast("削除しました");},
+  // 1セットだけ即記録（サーキット対応）
+  logSet(ei){const ex=this.partEx(this.partIdx)[ei];if(!ex)return;const p=MENU[this.partIdx].part;
+    const w=document.getElementById("w-"+ei).value,r=document.getElementById("r-"+ei).value,rir=document.getElementById("rir-"+ei).value;
+    if(!w&&!r){this.toast("重量か回数を入れてください");return;}
+    const sess=this.todaySession(true);
+    let e=sess.exercises.find(x=>x.name===ex.n);
+    if(!e){e={name:ex.n,part:p,sets:[]};sess.exercises.push(e);}
+    e.sets.push({w,r,rir});persist();
+    // 入力欄をクリアして次のセットへ（重量は残すと連続入力が楽）
+    document.getElementById("r-"+ei).value="";document.getElementById("rir-"+ei).value="";
+    this.renderEx();this.renderTodayRecord();this.toast(ex.n.replace("★","")+" を記録 ✓");},
+  delTodaySet(exName,si){const sess=this.todaySession(false);if(!sess)return;
+    const e=sess.exercises.find(x=>x.name===exName);if(!e)return;e.sets.splice(si,1);
+    if(!e.sets.length)sess.exercises=sess.exercises.filter(x=>x.name!==exName);
+    persist();this.renderEx();this.renderTodayRecord();},
+  renderTodayRecord(){const box=document.getElementById("todayRecord");if(!box)return;
+    const s=this.todaySession(false);
+    if(!s||!s.exercises.length){box.innerHTML='<div class="trec-empty">まだ今日の記録はありません。部位を選んで入力してください。</div>';return;}
+    box.innerHTML=s.exercises.map(e=>{
+      const sets=e.sets.filter(st=>st.w||st.r).map(st=>`${st.w!=null&&st.w!==""?st.w:"?"}kg×${st.r!=null&&st.r!==""?st.r:"?"}${st.rir?"(RIR"+st.rir+")":""}`).join("　");
+      return `<div class="trec-ex"><div class="tn"><span>${e.name.replace("★","")}${e.part?' <span class="tp">'+e.part+'</span>':''}</span><button class="del" style="background:none;border:none;color:var(--mute);font-size:16px;cursor:pointer;" onclick="app.delTodayExercise('${e.name.replace(/'/g,"")}')" title="この種目を今日の記録から削除">🗑</button></div><div class="tsets">${sets}</div></div>`;
+    }).join("")+'<button class="btn" style="background:#f6eae7;color:var(--warn);margin-top:8px;font-size:12px;padding:8px;" onclick="app.clearToday()">今日の記録をすべて消去</button>';},
+  delTodayExercise(exName){const sess=this.todaySession(false);if(!sess)return;
+    if(!confirm(exName.replace("★","")+" の今日の記録を削除しますか？"))return;
+    sess.exercises=sess.exercises.filter(e=>e.name!==exName);
+    if(!sess.exercises.length)DB.training=DB.training.filter(s=>s!==sess);
+    persist();this.renderEx();this.renderTodayRecord();this.toast("削除しました");},
+  clearToday(){const sess=this.todaySession(false);if(!sess||!sess.exercises.length){this.toast("今日の記録はありません");return;}
+    if(!confirm("今日の記録をすべて消去しますか？この操作は取り消せません。"))return;
+    DB.training=DB.training.filter(s=>s!==sess);persist();this.renderEx();this.renderTodayRecord();this.toast("今日の記録を消去しました");},
+  // ---- history ----
+  renderHistory(){const el=document.getElementById("histList");
+    const dates=[...new Set(DB.training.filter(s=>s.exercises&&s.exercises.length).map(s=>s.date))].sort().reverse();
+    if(!dates.length){el.innerHTML='<div class="trec-empty">まだ履歴がありません。</div>';return;}
+    const wd=["日","月","火","水","木","金","土"];
+    el.innerHTML=dates.map((date,di)=>{const s=DB.training.find(x=>x.date===date);
+      const parts=[...new Set(s.exercises.map(e=>e.part).filter(Boolean))].join("・");
+      let vol=0;s.exercises.forEach(e=>e.sets.forEach(st=>vol+=(parseFloat(st.w)||0)*(parseInt(st.r)||0)));
+      const d=new Date(date+"T00:00:00");
+      const body=s.exercises.map(e=>{const b=this.best(e.sets);const sets=e.sets.filter(st=>st.w||st.r).map(st=>`${st.w||"?"}×${st.r||"?"}`).join(", ");
+        return `<div class="hex"><b>${e.name.replace("★","")}</b>：${sets}</div>`;}).join("");
+      return `<div class="hitem" id="hi-${di}"><div class="hhd" onclick="document.getElementById('hi-${di}').classList.toggle('open')">
+        <div class="hd-l">${date.slice(5)}（${wd[d.getDay()]}）<span class="parts">${parts}</span></div>
+        <div class="hd-r">${Math.round(vol).toLocaleString()}kg ▾</div></div>
+        <div class="hbody">${body}<button class="btn" style="background:#f6eae7;color:var(--warn);margin-top:8px;font-size:12px;padding:8px;" onclick="app.delHistoryDay('${date}')">この日の記録を削除</button></div></div>`;}).join("");},
+  delHistoryDay(date){if(!confirm(date+" のトレ記録を削除しますか？取り消せません。"))return;
+    DB.training=DB.training.filter(s=>s.date!==date);persist();this.renderHistory();this.renderEx();this.renderTodayRecord();this.toast("削除しました");},
+  // ---- no-alcohol calendar ----
+  naYM:null,
+  naKey(y,m,d){return `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;},
+  naInit(){if(!this.naYM){const d=new Date(Date.now()-4*3600*1000);this.naYM=[d.getFullYear(),d.getMonth()];}},
+  naMonth(delta){this.naInit();let[y,m]=this.naYM;m+=delta;if(m<0){m=11;y--;}if(m>11){m=0;y++;}this.naYM=[y,m];this.renderNoAlc();},
+  toggleNoAlc(){const t=todayStr();DB.noAlc=DB.noAlc||{};
+    const was=!!DB.noAlc[t];DB.noAlc[t]=!was;if(!DB.noAlc[t])delete DB.noAlc[t];persist();
+    this.renderNoAlc();this.toast(was?"取り消しました":"🍵 ノンアル達成！ナイス！");},
+  naToggleDay(key,future){if(future)return;DB.noAlc=DB.noAlc||{};
+    if(DB.noAlc[key])delete DB.noAlc[key];else DB.noAlc[key]=true;persist();this.renderNoAlc();},
+  naBadgeList(count){ // monthly achieved-day milestones
+    return [{n:3,l:"3日"},{n:7,l:"7日"},{n:10,l:"10日"},{n:13,l:"40%"},{n:15,l:"半月"},{n:20,l:"20日"}];},
+  renderNoAlc(){this.naInit();const[y,m]=this.naYM;
+    const dim=new Date(y,m+1,0).getDate();
+    const goal=Math.ceil(dim*0.4);
+    // count achieved in this month
+    let achieved=0;for(let d=1;d<=dim;d++){if(DB.noAlc&&DB.noAlc[this.naKey(y,m,d)])achieved++;}
+    const pct=Math.round(achieved/dim*100);
+    const goalPct=40;
+    const done=achieved>=goal;
+    const remain=Math.max(0,goal-achieved);
+    // today info
+    const t=todayStr();const todayOn=!!(DB.noAlc&&DB.noAlc[t]);
+    const nowYM=(()=>{const d=new Date(Date.now()-4*3600*1000);return d.getFullYear()===y&&d.getMonth()===m;})();
+    // hero
+    const hero=document.getElementById("naHero");
+    let msg="";
+    if(done)msg="🎉 今月の目標40%達成！最高です";
+    else if(remain<=3)msg=`あと ${remain}日 で目標達成！ラストスパート`;
+    else if(pct>=25)msg="いい調子。この調子で積み上げよう";
+    else msg="1日ずつでOK。まず1つ🍵タップ";
+    hero.className="na-hero"+(done?" achieved":"");
+    hero.innerHTML=`<div class="pct">${pct}<small>%</small></div>
+      <div class="sub">${y}年${m+1}月　ノンアル ${achieved} / ${dim}日（目標 ${goal}日＝40%）</div>
+      <div class="meter"><div class="fill" style="width:${Math.min(100,pct)}%"></div><div class="goal" style="left:${goalPct}%"></div></div>
+      <div class="goaltxt">白線＝40%目標ライン　｜　${done?"達成済み 🏅":"達成まであと "+remain+"日"}</div>
+      <div class="msg">${msg}</div>`;
+    // today button (only meaningful in current month)
+    const tb=document.getElementById("naTodayBtn");
+    if(nowYM){tb.style.display="block";tb.className="btn na-today"+(todayOn?" on":"");tb.textContent=todayOn?"✓ 今日はノンアル達成（取り消す）":"🍵 今日はノンアルだった！記録する";}
+    else{tb.style.display="none";}
+    // badges
+    const badges=this.naBadgeList(achieved);
+    document.getElementById("naBadges").innerHTML=badges.map(b=>`<div class="na-badge${achieved>=b.n?" got":""}">${achieved>=b.n?"🏅":"🔒"} ${b.l}</div>`).join("");
+    // calendar
+    document.getElementById("naMonthLabel").textContent=`${y}年 ${m+1}月`;
+    const first=new Date(y,m,1).getDay();
+    const dows=["日","月","火","水","木","金","土"];
+    let html=dows.map(d=>`<div class="na-dow">${d}</div>`).join("");
+    for(let i=0;i<first;i++)html+='<div class="na-cell empty"></div>';
+    for(let d=1;d<=dim;d++){const key=this.naKey(y,m,d);const on=!!(DB.noAlc&&DB.noAlc[key]);
+      const isToday=(key===t);const future=key>t;
+      html+=`<div class="na-cell${on?" on":""}${isToday?" today":""}${future?" future":""}" onclick="app.naToggleDay('${key}',${future})">
+        <span class="dnum">${d}</span>${on?'<span class="ic">🍵</span>':''}</div>`;}
+    document.getElementById("naCal").innerHTML=html;},
+  renderLabInputs(){
+    document.getElementById("labKey").innerHTML=LAB_KEY.map(l=>this.labFld(l)).join("");
+    document.getElementById("labDetail").innerHTML=LAB_DETAIL.map(l=>this.labFld(l)).join("");},
+  labFld(l){const rng=(l.lo!=null)?`${l.lo}–${l.hi}`:"";return `<div class="labfld"><label>${l.n}<span class="rng"> ${rng} ${l.u}</span></label><input type="number" step="0.1" inputmode="decimal" id="lab-${l.k}"></div>`;},
+  saveLab(){const date=document.getElementById("labDate").value;if(!date){this.toast("日付を入れてください");return;}
+    const vals={};LAB_ALL.forEach(l=>{const v=document.getElementById("lab-"+l.k).value;if(v!=="")vals[l.k]=parseFloat(v);});
+    if(!Object.keys(vals).length){this.toast("値がありません");return;}
+    DB.labs=DB.labs.filter(x=>x.date!==date);DB.labs.push({date,vals});DB.labs.sort((a,b)=>a.date<b.date?-1:1);persist();
+    LAB_ALL.forEach(l=>document.getElementById("lab-"+l.k).value="");this.toast("採血を保存 ✓");this.renderLabHist();},
+  renderLabHist(){const el=document.getElementById("labHist");const s=[...DB.labs].reverse();
+    if(!s.length){el.innerHTML='<div class="empty">記録なし</div>';return;}
+    el.innerHTML=s.map(x=>{const t=x.vals.tT!=null?`T ${x.vals.tT}`:"";const e2=x.vals.E2!=null?`E2 ${x.vals.E2}`:"";const ht=x.vals.Ht!=null?`Ht ${x.vals.Ht}%`:"";
+      const key=[t,e2,ht].filter(Boolean).join(" ｜ ");
+      return `<div class="row"><div class="l">採血<span class="dt"> ${x.date.slice(5)}</span><br><span style="font-size:11px;color:var(--mute)">${key}</span></div>
+        <button class="del" onclick="app.delLab('${x.date}')">×</button></div>`;}).join("");},
+  delLab(d){DB.labs=DB.labs.filter(x=>x.date!==d);persist();this.renderLabHist();},
+  // ---- meds ----
+  renderMedBtns(){document.getElementById("medBtns").innerHTML=MEDS.map((m,i)=>
+    `<button class="medbtn ${m.cls}" onclick="app.addMed(${i})">${m.k}<span class="d">${m.dose}</span></button>`).join("");
+    document.getElementById("ongoingBtns").innerHTML=ONGOING_OPTS.map((m,i)=>
+    `<button class="medbtn ${m.cls}" onclick="app.startOngoing(${i})">＋連日 ${m.name}<span class="d">${m.dose}／日</span></button>`).join("");
+    const pb=document.getElementById("procBtns");if(pb)pb.innerHTML=PROC_OPTS.map((p,i)=>
+    `<button class="medbtn ${p.cls}" onclick="app.addProc(${i})">${p.name}</button>`).join("");
+    this.renderOngoing();},
+  renderOngoing(){const el=document.getElementById("ongoingList");if(!el)return;
+    const active=(DB.ongoing||[]).filter(o=>!o.end);
+    if(!active.length){el.innerHTML='<div class="hint" style="padding:4px 0;">継続中の連日内服はありません。下のボタンで開始できます。</div>';return;}
+    el.innerHTML=active.map((o,idx)=>{const days=this.daysSince(o.start);
+      return `<div class="row"><div class="l"><span class="pill ${o.cls}">${o.name}</span> ${o.dose}／日
+        <span class="dt"> ${o.start.slice(5)}〜継続中（${days}日目）</span></div>
+        <button class="del" onclick="app.stopOngoing(${DB.ongoing.indexOf(o)})" title="中止">■</button></div>`;}).join("");},
+  daysSince(start){const s=new Date(start),n=new Date(todayStr());return Math.max(1,Math.round((n-s)/86400000)+1);},
+  startOngoing(i){const m=ONGOING_OPTS[i];
+    // 同じ薬剤の継続中を自動で終了（上書き＝用量変更の扱い）
+    (DB.ongoing||[]).forEach(o=>{if(o.name===m.name&&!o.end){o.end=todayStr();}});
+    DB.ongoing.push({name:m.name,dose:m.dose,cls:m.cls,start:todayStr(),end:null});persist();
+    this.renderOngoing();this.toast(`${m.name} ${m.dose} 連日内服を開始 ✓`);},
+  stopOngoing(idx){if(!confirm("この連日内服を中止しますか？"))return;
+    DB.ongoing[idx].end=todayStr();persist();this.renderOngoing();this.toast("連日内服を中止しました");},
+  // ---- import from chat ----
+  doImport(){
+    const raw=document.getElementById("importText").value.trim();
+    const box=document.getElementById("importResult");
+    if(!raw){box.innerHTML='<div class="hint" style="color:var(--warn)">テキストが空です。</div>';return;}
+    let obj;
+    try{const clean=raw.replace(/```json/g,"").replace(/```/g,"").trim();obj=JSON.parse(clean);}
+    catch(e){box.innerHTML='<div class="hint" style="color:var(--warn)">形式を読み取れませんでした。ClaudeにJSON形式で出してもらってください。</div>';return;}
+    let nLab=0,nIB=0,nMed=0;
+    if(Array.isArray(obj.labs)){obj.labs.forEach(x=>{if(!x.date||!x.vals)return;DB.labs=DB.labs.filter(y=>y.date!==x.date);DB.labs.push({date:x.date,vals:x.vals});nLab++;});DB.labs.sort((a,b)=>a.date<b.date?-1:1);}
+    if(Array.isArray(obj.inbody)){obj.inbody.forEach(x=>{if(!x.date||!x.vals)return;DB.inbody=DB.inbody.filter(y=>y.date!==x.date);DB.inbody.push({date:x.date,vals:x.vals,noise:false});nIB++;});DB.inbody.sort((a,b)=>a.date<b.date?-1:1);}
+    if(Array.isArray(obj.meds)){obj.meds.forEach(x=>{if(!x.date||!x.name)return;DB.meds.push({date:x.date,name:x.name,dose:x.dose||"",cls:x.cls||"short"});nMed++;});DB.meds.sort((a,b)=>a.date<b.date?-1:1);}
+    persist();
+    document.getElementById("importText").value="";
+    box.innerHTML=`<div class="feedback" style="background:#e8f2ec;border-color:#bfe0cf;color:#1e5a3a;">
+      取り込み完了 ✓　採血 ${nLab}件 ／ InBody ${nIB}件${nMed?" ／ 薬剤 "+nMed+"件":""}。<br>「血液」「InBody」「推移」タブで確認できます。</div>`;
+    this.toast("取り込みました ✓");
+  },
+  // ---- backup / restore ----
+  exportData(){
+    const json=JSON.stringify(DB);
+    const blob=new Blob([json],{type:"application/json"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;a.download="anzu_tracker_backup_"+todayStr()+".json";
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    this.toast("バックアップを書き出しました ✓");
+  },
+  async copyData(){
+    const json=JSON.stringify(DB);
+    try{await navigator.clipboard.writeText(json);this.toast("コピーしました ✓（メモ等に貼って保管）");}
+    catch(e){document.getElementById("restoreText").value=json;this.toast("下の欄に出力しました。長押しでコピーを");}
+  },
+  restoreData(){
+    const raw=document.getElementById("restoreText").value.trim();
+    const box=document.getElementById("backupResult");
+    if(!raw){box.innerHTML='<div class="hint" style="color:var(--warn)">貼り付けが空です。</div>';return;}
+    let obj;
+    try{obj=JSON.parse(raw.replace(/```json/g,"").replace(/```/g,"").trim());}
+    catch(e){box.innerHTML='<div class="hint" style="color:var(--warn)">形式が読み取れません。</div>';return;}
+    if(!obj||typeof obj!=="object"||!("training" in obj||"labs" in obj)){box.innerHTML='<div class="hint" style="color:var(--warn)">バックアップ形式ではないようです。</div>';return;}
+    if(!confirm("現在のデータを、この内容で置き換えます。よろしいですか？"))return;
+    DB=Object.assign({training:[],labs:[],meds:[],inbody:[],ongoing:[],customEx:{},procedures:[],noAlc:{},cond:{}},obj);
+    persist();document.getElementById("restoreText").value="";
+    box.innerHTML='<div class="feedback" style="background:#e8f2ec;border-color:#bfe0cf;color:#1e5a3a;">復元しました ✓ 各タブでご確認ください。</div>';
+    this.toast("復元しました ✓");
+    this.init();
+  },
+  addMed(i){const m=MEDS[i],date=document.getElementById("medDate").value;if(!date)return;
+    DB.meds.push({date,name:m.k,dose:m.dose,cls:m.cls});DB.meds.sort((a,b)=>a.date<b.date?-1:1);persist();this.toast(`${m.k} ${m.dose} を記録 ✓`);this.renderMedHist();},
+  addProc(i){const p=PROC_OPTS[i],date=document.getElementById("procDate").value;if(!date){this.toast("日付を入れてください");return;}
+    const note=document.getElementById("procNote").value.trim();
+    DB.procedures.push({date,name:p.name,note,cls:"proc"});DB.procedures.sort((a,b)=>a.date<b.date?-1:1);persist();
+    document.getElementById("procNote").value="";this.toast(`${p.name} を記録 ✓`);this.renderMedHist();},
+  delProc(d,n,note){const i=DB.procedures.findIndex(p=>p.date===d&&p.name===n&&(p.note||"")===note);if(i>=0)DB.procedures.splice(i,1);persist();this.renderMedHist();},
+  renderMedHist(){const el=document.getElementById("medHist");
+    const meds=(DB.meds||[]).map(m=>({...m,_t:"med"}));
+    const procs=(DB.procedures||[]).map(p=>({...p,_t:"proc"}));
+    const all=[...meds,...procs].sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0);
+    if(!all.length){el.innerHTML='<div class="empty">記録なし</div>';return;}
+    el.innerHTML=all.map(x=>{
+      if(x._t==="proc"){return `<div class="row"><div class="l"><span class="pill proc">施術</span> ${x.name}${x.note?'<br><span style="font-size:11px;color:var(--mute)">'+x.note+'</span>':''}<span class="dt"> ${x.date.slice(5)}</span></div>
+        <button class="del" onclick="app.delProc('${x.date}','${x.name}','${(x.note||"").replace(/'/g,"")}')">×</button></div>`;}
+      return `<div class="row"><div class="l"><span class="pill ${x.cls}">${x.name}</span> ${x.dose}<span class="dt"> ${x.date.slice(5)}</span></div>
+      <button class="del" onclick="app.delMed('${x.date}','${x.name}','${x.dose}')">×</button></div>`;}).join("");},
+  delMed(d,n,dose){const i=DB.meds.findIndex(m=>m.date===d&&m.name===n&&m.dose===dose);if(i>=0)DB.meds.splice(i,1);persist();this.renderMedHist();},
+  // ---- inbody ----
+  renderIBInputs(){document.getElementById("ibFields").innerHTML=IB_FIELDS.map(f=>
+    `<div class="labfld"><label>${f.n}<span class="rng"> ${f.u}</span></label><input type="number" step="0.1" inputmode="decimal" id="ib-${f.k}"></div>`).join("");},
+  saveIB(){const date=document.getElementById("ibDate").value;if(!date)return;const vals={};
+    IB_FIELDS.forEach(f=>{const v=document.getElementById("ib-"+f.k).value;if(v!=="")vals[f.k]=parseFloat(v);});
+    if(!Object.keys(vals).length){this.toast("値がありません");return;}
+    DB.inbody=DB.inbody.filter(x=>x.date!==date);DB.inbody.push({date,vals,noise:false});DB.inbody.sort((a,b)=>a.date<b.date?-1:1);persist();
+    IB_FIELDS.forEach(f=>document.getElementById("ib-"+f.k).value="");this.toast("InBodyを保存 ✓");this.renderIBHist();},
+  renderIBHist(){const el=document.getElementById("ibHist");const s=[...DB.inbody].reverse();
+    if(!s.length){el.innerHTML='<div class="empty">記録なし</div>';return;}
+    el.innerHTML=s.map(x=>`<div class="row"><div class="l">体重${x.vals.wt||"-"} / 骨格筋${x.vals.smm||"-"} / 脂肪${x.vals.fat||"-"}<span class="dt"> ${x.date.slice(5)}</span></div>
+      <button class="del" onclick="app.delIB('${x.date}')">×</button></div>`).join("");},
+  delIB(d){DB.inbody=DB.inbody.filter(x=>x.date!==d);persist();this.renderIBHist();},
+  // ---- graph ----
+  renderGraph(){const sel=document.getElementById("graphSel");
+    if(sel.options.length===0){
+      const groups=[["── ホルモン ──",[["tT","総テストステロン"],["fT","遊離T"],["E2","エストラジオール"],["PRL","プロラクチン"],["LH","LH"],["FSH","FSH"]]],
+        ["── 安全性 ──",[["Ht","ヘマトクリット"],["Hb","血色素"],["HDL","HDL"],["LDL","LDL"],["TG","中性脂肪"],["CK","CK"],["eGFR","eGFR"],["Cr","クレアチニン"]]],
+        ["── InBody ──",[["ib_wt","体重"],["ib_smm","骨格筋量"],["ib_mm","筋肉量"],["ib_fat","体脂肪量"],["ib_pbf","体脂肪率"]]],
+        ["── トレMAX ──",MENU.flatMap(m=>m.ex).concat(Object.values(DB.customEx||{}).flat()).filter((e,i,a)=>a.findIndex(x=>x.n===e.n)===i).map(e=>["tr_"+e.n,e.n.replace("★","")])]];
+      groups.forEach(([label,items])=>{const og=document.createElement("optgroup");og.label=label;
+        items.forEach(([v,t])=>{const o=document.createElement("option");o.value=v;o.textContent=t;og.appendChild(o);});sel.appendChild(og);});
+      sel.value="tT";sel.onchange=()=>this.draw(sel.value);}
+    this.draw(sel.value||"tT");},
+  draw(key){
+    let pts=[],range=null,alert=null,unit="",title="";
+    if(key.startsWith("ib_")){const f=key.slice(3);DB.inbody.forEach(x=>{if(x.vals[f]!=null)pts.push({date:x.date,v:x.vals[f],noise:x.noise});});
+      const def=IB_FIELDS.find(f2=>f2.k===f);unit=def.u;title=def.n;}
+    else if(key.startsWith("tr_")){const name=key.slice(3);DB.training.forEach(s=>{const e=s.exercises.find(x=>x.name===name);if(e){const b=this.best(e.sets);if(b&&b.w)pts.push({date:s.date,v:b.w});}});unit="kg";title=name.replace("★","")+" 最重量";}
+    else{const def=LAB_ALL.find(l=>l.k===key);if(def){range=(def.lo!=null)?[def.lo,def.hi]:null;alert=def.alert;unit=def.u;title=def.n;}
+      DB.labs.forEach(x=>{if(x.vals[key]!=null)pts.push({date:x.date,v:x.vals[key]});});}
+    const svg=document.getElementById("graph"),note=document.getElementById("graphNote");
+    if(pts.length<1){svg.innerHTML=`<text x="310" y="150" text-anchor="middle" fill="#9aa0a8" font-size="15">記録がありません</text>`;note.textContent="";return;}
+    const W=620,H=300,pl=48,pr=22,pt=26,pb=42;
+    const vs=pts.map(p=>p.v);let vmin=Math.min(...vs),vmax=Math.max(...vs);
+    if(range){vmin=Math.min(vmin,range[0]);vmax=Math.max(vmax,range[1]);}
+    if(alert)vmax=Math.max(vmax,alert);
+    const pad=(vmax-vmin)*0.12||1;vmin-=pad;vmax+=pad;
+    const X=i=>pl+(W-pl-pr)*(pts.length===1?0.5:i/(pts.length-1));
+    const Y=v=>H-pb-(v-vmin)/((vmax-vmin)||1)*(H-pt-pb);
+    let g="";
+    if(range){const yH=Y(range[1]),yL=Y(range[0]);g+=`<rect x="${pl}" y="${yH}" width="${W-pl-pr}" height="${yL-yH}" fill="#dbe5da" opacity="0.5"/>`;}
+    if(alert){const ya=Y(alert);g+=`<line x1="${pl}" y1="${ya}" x2="${W-pr}" y2="${ya}" stroke="#c0392b" stroke-width="1.2" stroke-dasharray="5 3" opacity="0.7"/><text x="${W-pr-2}" y="${ya-4}" text-anchor="end" font-size="9" fill="#c0392b" font-weight="700">閾値${alert}</text>`;}
+    for(let k=0;k<=3;k++){const yy=pt+(H-pt-pb)*k/3,val=vmax-(vmax-vmin)*k/3;
+      g+=`<line x1="${pl}" y1="${yy}" x2="${W-pr}" y2="${yy}" stroke="#f0ede5"/><text x="${pl-6}" y="${yy+4}" text-anchor="end" font-size="9" fill="#9aa0a8">${val>=1000?Math.round(val):val.toFixed(val<10?1:0)}</text>`;}
+    // solid path (skip noise)
+    let path="",pen=false;pts.forEach((p,i)=>{if(p.noise){pen=false;return;}path+=(pen?"L":"M")+X(i).toFixed(1)+" "+Y(p.v).toFixed(1)+" ";pen=true;});
+    g+=`<path d="${path}" fill="none" stroke="#c46a1f" stroke-width="2.5" stroke-linejoin="round"/>`;
+    // noise dashed connectors
+    const solid=pts.filter(p=>!p.noise);const lastSolid=solid.length?pts.indexOf(solid[solid.length-1]):-1;
+    pts.forEach((p,i)=>{
+      if(p.noise){if(lastSolid>=0)g+=`<line x1="${X(lastSolid)}" y1="${Y(pts[lastSolid].v)}" x2="${X(i)}" y2="${Y(p.v)}" stroke="#9aa0a8" stroke-width="1.4" stroke-dasharray="3 3"/>`;
+        g+=`<circle cx="${X(i)}" cy="${Y(p.v)}" r="3.6" fill="#fff" stroke="#9aa0a8" stroke-width="1.8"/><text x="${X(i)}" y="${Y(p.v)-8}" text-anchor="middle" font-size="9" font-weight="700" fill="#9aa0a8">${p.v}</text>`;return;}
+      let col="#c46a1f";if(range){if(p.v>range[1])col="#c0392b";else if(p.v<range[0])col="#2f6fae";}
+      g+=`<circle cx="${X(i)}" cy="${Y(p.v)}" r="4" fill="#fff" stroke="${col}" stroke-width="2"/><text x="${X(i)}" y="${Y(p.v)-8}" text-anchor="middle" font-size="9" font-weight="700" fill="#1a3a5c">${p.v}</text>`;});
+    // x labels (thin)
+    pts.forEach((p,i)=>{if(pts.length>8&&i%2)return;g+=`<text x="${X(i)}" y="${H-pb+16}" text-anchor="middle" font-size="8" fill="#9aa0a8">${p.date.slice(5)}</text>`;});
+    g+=`<text x="${pl}" y="16" font-size="11" font-weight="800" fill="#1a3a5c">${title} (${unit})</text>`;
+    svg.innerHTML=g;
+    const f=pts.filter(p=>!p.noise);
+    if(f.length>1){const d=(f[f.length-1].v-f[0].v).toFixed(1);note.textContent=`${f[0].v} → ${f[f.length-1].v} ${unit}（${d>=0?"+":""}${d}）${key==="Ht"?"｜ 50%で瀉血・飲水を":""}${key.startsWith("tr_")?"｜ 右肩上がりなら過負荷OK":""}`;}
+    else note.textContent="";},
+  // ---- cond ----
+  renderCond(){/* 体調タブは削除済み（no-op） */return;
+    const c=DB.cond[todayStr()]||{};
+    const pC=document.getElementById("painChips");pC.innerHTML="";[0,1,2,3,4,5].forEach(v=>{const b=document.createElement("div");b.className="chip"+(c.pain===v?" on":"");b.textContent=v;b.onclick=()=>{const cc=DB.cond[todayStr()]||{};cc.pain=v;DB.cond[todayStr()]=cc;persist();this.renderCond();};pC.appendChild(b);});
+    const cC=document.getElementById("condChips");cC.innerHTML="";["良好","むくみ","だるい","眠り浅い","気分の波"].forEach(v=>{const on=(c.cond||[]).includes(v);const b=document.createElement("div");b.className="chip"+(on?" on":"");b.textContent=v;b.onclick=()=>{const cc=DB.cond[todayStr()]||{};cc.cond=cc.cond||[];const i=cc.cond.indexOf(v);i<0?cc.cond.push(v):cc.cond.splice(i,1);DB.cond[todayStr()]=cc;persist();this.renderCond();};cC.appendChild(b);});
+    const dC=document.getElementById("drinkChips");dC.innerHTML="";["なし","少量","多め"].forEach(v=>{const b=document.createElement("div");b.className="chip"+(c.drink===v?" on":"");b.textContent=v;b.onclick=()=>{const cc=DB.cond[todayStr()]||{};cc.drink=v;DB.cond[todayStr()]=cc;persist();this.renderCond();};dC.appendChild(b);});
+    document.getElementById("waterAmt").textContent=(c.water||0)+" L";
+    const memo=document.getElementById("condMemo");memo.value=c.memo||"";memo.oninput=e=>{const cc=DB.cond[todayStr()]||{};cc.memo=e.target.value;DB.cond[todayStr()]=cc;persist();};},
+  water(d){const cc=DB.cond[todayStr()]||{};cc.water=Math.max(0,Math.round(((cc.water||0)+d)*100)/100);DB.cond[todayStr()]=cc;persist();this.renderCond();},
+};
+document.querySelectorAll(".tabs button").forEach(b=>{b.onclick=()=>{
+  document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("on"));b.classList.add("on");
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("on"));document.getElementById("view-"+b.dataset.tab).classList.add("on");
+  if(b.dataset.tab==="labs")app.renderLabHist();if(b.dataset.tab==="med"){app.renderMedHist();app.renderOngoing();}
+  if(b.dataset.tab==="inbody")app.renderIBHist();if(b.dataset.tab==="graph")app.renderGraph();if(b.dataset.tab==="hist")app.renderHistory();if(b.dataset.tab==="noalc")app.renderNoAlc();};});
+// ============ (音声/AI機能は無効化: 手入力＋Claudeチャットでの相談に統一) ============
+app.buildMedText=function(scope){
+  const wd=["日","月","火","水","木","金","土"];
+  const lines=[];
+  // 連日内服（継続中／期間）
+  const ong=(DB.ongoing||[]).slice().sort((a,b)=>a.start<b.start?-1:1);
+  if(ong.length){
+    lines.push("【連日内服】");
+    ong.forEach(o=>{lines.push(`・${o.name} ${o.dose}／日　${o.start}〜${o.end?o.end:"継続中"}`);});
+    lines.push("");
+  }
+  // 単回投与
+  let meds=(DB.meds||[]).slice();
+  if(scope==="today")meds=meds.filter(m=>m.date===todayStr());
+  meds.sort((a,b)=>a.date<b.date?-1:1);
+  if(meds.length){
+    lines.push("【単回投与】");
+    meds.forEach(m=>{const d=new Date(m.date+"T00:00:00");lines.push(`・${m.date}（${wd[d.getDay()]}）${m.name} ${m.dose}`);});
+  }
+  // 施術
+  let procs=(DB.procedures||[]).slice();
+  if(scope==="today")procs=procs.filter(p=>p.date===todayStr());
+  procs.sort((a,b)=>a.date<b.date?-1:1);
+  if(procs.length){
+    lines.push("");
+    lines.push("【施術】");
+    procs.forEach(p=>{const d=new Date(p.date+"T00:00:00");lines.push(`・${p.date}（${wd[d.getDay()]}）${p.name}${p.note?" — "+p.note:""}`);});
+  }
+  const out=lines.join("\n").trim();
+  return out||null;
+};
+app.buildTrainingText=function(scope){
+  const wd=["日","月","火","水","木","金","土"];
+  let dates=[...new Set(DB.training.filter(s=>s.exercises&&s.exercises.length).map(s=>s.date))];
+  if(scope==="today")dates=dates.filter(d=>d===todayStr());
+  dates=dates.sort();
+  if(!dates.length)return null;
+  const lines=[];
+  dates.forEach(date=>{const s=DB.training.find(x=>x.date===date);
+    const d=new Date(date+"T00:00:00");const w=wd[d.getDay()];
+    const parts=[...new Set(s.exercises.map(e=>e.part).filter(Boolean))].join("・");
+    lines.push(`■ ${date}（${w}）${parts}`);
+    let vol=0;
+    s.exercises.forEach(e=>{
+      const ps=e.sets.filter(st=>st.w||st.r).map(st=>{const w2=st.w!=null&&st.w!==""?st.w:"?";const r=st.r!=null&&st.r!==""?st.r:"?";const rir=st.rir?`(RIR${st.rir})`:"";return `${w2}kg×${r}${rir}`;});
+      e.sets.forEach(st=>{vol+=(parseFloat(st.w)||0)*(parseInt(st.r)||0);});
+      lines.push(`・${e.name.replace("★","")}：${ps.join(" / ")}`);
+    });
+    lines.push(`　総挙上量 ${Math.round(vol).toLocaleString()}kg`);
+    lines.push("");
+  });
+  return lines.join("\n").trim();
+};
+app.buildExportText=function(scope){
+  const tr=this.buildTrainingText(scope);
+  const md=this.buildMedText(scope);
+  const parts=[];
+  parts.push("=== トレーニング記録 ===");
+  parts.push(tr||"（記録なし）");
+  parts.push("");
+  parts.push("=== 薬剤 ===");
+  parts.push(md||"（記録なし）");
+  return parts.join("\n").trim();
+};
+app.exportTrainingText=function(){
+  const out=document.getElementById("trOut");
+  out.innerHTML=`<div class="card" style="padding:12px;">
+    <div style="font-size:12px;font-weight:700;margin-bottom:8px;">どの範囲を書き出しますか？（トレ＋薬剤）</div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn primary" onclick="app.doExportText('today')">今日だけ</button>
+      <button class="btn" style="background:#eee9df;" onclick="app.doExportText('all')">全期間</button>
+    </div>
+    <div id="trOutBody"></div>
+  </div>`;
+};
+app.doExportText=async function(scope){
+  const txt=this.buildExportText(scope);
+  const body=document.getElementById("trOutBody");
+  if(!txt){body.innerHTML='<div class="hint" style="margin-top:8px;color:var(--warn)">記録がありません。</div>';return;}
+  let copied=false;
+  try{await navigator.clipboard.writeText(txt);copied=true;}catch(e){}
+  body.innerHTML=`<div class="hint" style="margin-top:10px;">${copied?"✓ コピーしました。トレ＋薬剤をチャットや日報に貼れます。":"下を長押しでコピーしてください。"}</div>
+    <textarea rows="12" style="margin-top:6px;font-size:12px;" onclick="this.select()">${txt.replace(/</g,"&lt;")}</textarea>`;
+  if(copied)this.toast("トレ＋薬剤をコピー ✓");
+};
+
+app.init();
+</script>
+</body>
+</html>
