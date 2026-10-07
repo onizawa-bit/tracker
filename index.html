@@ -872,6 +872,24 @@ if(DB&&DB.inbody&&!DB._ib0923Added){
   DB.inbody.sort((a,b)=>a.date<b.date?-1:1);
   DB._ib0923Added=true;localStorage.setItem("anzu_tracker_v1",JSON.stringify(DB));
 }
+// 一度だけ：10/7までの投与（9/26・10/1・10/7 エナルモンデポ30mg）・採血（9/28・10/5）・InBody（9/27・9/28・10/3・10/5）
+if(DB&&DB.meds&&DB.labs&&DB.inbody&&!DB._data1007Added){
+  [["2026-09-26","エナルモンデポ","30mg","short"],["2026-10-01","エナルモンデポ","30mg","short"],["2026-10-07","エナルモンデポ","30mg","short"]].forEach(([date,name,dose,cls])=>{
+    if(!DB.meds.some(m=>m.date===date&&m.name===name))DB.meds.push({date,name,dose,cls});
+  });
+  DB.meds.sort((a,b)=>a.date<b.date?-1:1);
+  [["2026-09-28",{tT:1698.2,fT:24.5,E2:33.2,Ht:47.1,Hb:15.0,HDL:51,LDL:71,TG:62,eGFR:55.0,Cr:1.18,CK:297,AST:32,ALT:26,PRL:9.9,LH:0.4,FSH:0.4,WBC:3300,RBC:520,UA:6.4,Na:140}],
+   ["2026-10-05",{tT:1965.1,E2:21.5,Ht:47.9,Hb:15.5,HDL:57,LDL:69,TG:51,eGFR:61.8,Cr:1.06,CK:874,AST:46,ALT:40,PRL:12.2,LH:0.4,FSH:0.5,WBC:4390,RBC:529,UA:5.3,Na:141}]
+  ].forEach(([d,v])=>{DB.labs=DB.labs.filter(x=>x.date!==d);DB.labs.push({date:d,vals:v});});
+  DB.labs.sort((a,b)=>a.date<b.date?-1:1);
+  [["2026-09-27",{wt:64.7,smm:32.9,mm:54.9,fat:6.7,pbf:10.4}],
+   ["2026-09-28",{wt:64.5,smm:32.2,mm:53.9,fat:7.5,pbf:11.7}],
+   ["2026-10-03",{wt:63.9,smm:32.6,mm:54.3,fat:6.5,pbf:10.2}],
+   ["2026-10-05",{wt:64.3,smm:32.4,mm:54.3,fat:6.9,pbf:10.7}]
+  ].forEach(([d,v])=>{DB.inbody=DB.inbody.filter(x=>x.date!==d);DB.inbody.push({date:d,vals:v,noise:false});});
+  DB.inbody.sort((a,b)=>a.date<b.date?-1:1);
+  DB._data1007Added=true;localStorage.setItem("anzu_tracker_v1",JSON.stringify(DB));
+}
 if(!DB){
   DB={training:[],labs:[],meds:[],inbody:[],ongoing:[],customEx:{},procedures:[],noAlc:{},cond:{},punct:{},seeded:true};
   // seed labs
