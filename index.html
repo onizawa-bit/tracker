@@ -890,6 +890,17 @@ if(DB&&DB.meds&&DB.labs&&DB.inbody&&!DB._data1007Added){
   DB.inbody.sort((a,b)=>a.date<b.date?-1:1);
   DB._data1007Added=true;localStorage.setItem("anzu_tracker_v1",JSON.stringify(DB));
 }
+// 一度だけ：10/12採血・投与（10/12 エナルモンデポ30mg・10/15 エナルモンデポ40mg）
+if(DB&&DB.meds&&DB.labs&&!DB._data1015Added){
+  [["2026-10-12","エナルモンデポ","30mg","short"],["2026-10-15","エナルモンデポ","40mg","short"]].forEach(([date,name,dose,cls])=>{
+    if(!DB.meds.some(m=>m.date===date&&m.name===name))DB.meds.push({date,name,dose,cls});
+  });
+  DB.meds.sort((a,b)=>a.date<b.date?-1:1);
+  [["2026-10-12",{tT:1749.8,E2:31.4,Ht:43.7,Hb:13.7,HDL:51,LDL:59,TG:48,eGFR:63.1,Cr:1.04,CK:426,AST:35,ALT:31,PRL:10.3,LH:0.5,FSH:0.6,WBC:3470,RBC:475,UA:5.3,Na:141}]
+  ].forEach(([d,v])=>{DB.labs=DB.labs.filter(x=>x.date!==d);DB.labs.push({date:d,vals:v});});
+  DB.labs.sort((a,b)=>a.date<b.date?-1:1);
+  DB._data1015Added=true;localStorage.setItem("anzu_tracker_v1",JSON.stringify(DB));
+}
 if(!DB){
   DB={training:[],labs:[],meds:[],inbody:[],ongoing:[],customEx:{},procedures:[],noAlc:{},cond:{},punct:{},seeded:true};
   // seed labs
