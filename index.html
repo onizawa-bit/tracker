@@ -63,6 +63,26 @@
   .gymname-in{width:100%;margin-top:4px;padding:5px 8px;border:1px solid var(--line);border-radius:7px;font-size:12px;font-family:inherit;box-sizing:border-box;}
   .gymtag{display:inline-block;font-size:9px;font-weight:800;padding:1px 6px;border-radius:6px;color:#fff;margin-left:4px;vertical-align:middle;}
   .gymtag.a{background:#d23b3b;}.gymtag.e{background:#8a54c8;}.gymtag.l{background:#4aa9d4;}.gymtag.o{background:#5a8a5a;}
+  /* inbody machine select + tag */
+  .ibm-card{border:2px solid var(--orange);background:#fffaf3;}
+  .ibm-card.ok{border-color:var(--line);background:var(--panel);}
+  .ibm-ttl{font-size:12px;font-weight:800;color:var(--navy);margin-bottom:6px;display:flex;justify-content:space-between;align-items:baseline;}
+  .ibm-ttl .need{font-size:10.5px;color:var(--warn);font-weight:800;}
+  .ibm-ttl .cur{font-size:10.5px;color:var(--mute);font-weight:700;}
+  .ibmsel{display:flex;gap:7px;}
+  .ibmbtn{flex:1;border:1.5px solid var(--line);border-radius:9px;padding:11px 0;font-size:13px;font-weight:800;background:#fff;color:var(--mute);cursor:pointer;font-family:inherit;}
+  .ibmbtn.sm{padding:7px 0;font-size:11px;}
+  .ibmbtn.on.ibm-anytime{background:#8a54c8;color:#fff;border-color:#8a54c8;}
+  .ibmbtn.on.ibm-funaki{background:var(--orange);color:#fff;border-color:var(--orange);}
+  .ibmbtn.on.ibm-other{background:#7a828c;color:#fff;border-color:#7a828c;}
+  .ibmbtn.on.ibm-unknown{background:#d9dcdf;color:#555;border-color:#d9dcdf;}
+  .ibm-hint{font-size:11px;color:var(--care);font-weight:700;margin-top:7px;}
+  .ibm-hint:empty{display:none;}
+  .ibmtag{display:inline-block;font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:6px;color:#fff;margin-right:5px;vertical-align:middle;cursor:pointer;}
+  .ibmtag.ibm-anytime{background:#8a54c8;}.ibmtag.ibm-funaki{background:var(--orange);}.ibmtag.ibm-other{background:#7a828c;}
+  .ibmtag.ibm-unknown{background:#e3e5e8;color:#6b7076;}.ibmtag.ibm-am{background:#eef3f4;color:var(--care);cursor:default;}
+  .ibm-edit{width:100%;margin-top:8px;}
+  .ibm-edit .ibmsel{gap:5px;}
   .setmemo{width:100%;margin-top:4px;padding:5px 8px;border:1px solid var(--line);border-radius:7px;font-size:12px;font-family:inherit;box-sizing:border-box;}
   .exname-tap{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px;}
   .hist-modal{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;display:flex;align-items:flex-end;justify-content:center;}
@@ -348,7 +368,7 @@
     <div class="sec-t">チャットから取り込み</div>
     <div class="hint">Claudeのチャットに検査結果やInBodyのスクショ／PDFを上げ、返ってきた取込用テキスト（JSON）をここに貼り付けて「取り込む」を押すと、血液・InBodyに自動反映されます。手入力は不要です。</div>
     <div class="card">
-      <textarea id="importText" rows="6" placeholder='ここにClaudeが出力したJSONを貼り付け…&#10;例：{"labs":[{"date":"2026-07-13","vals":{"tT":2000,"E2":35,"Ht":48.5}}],"inbody":[{"date":"2026-07-13","vals":{"wt":66.5,"smm":32.8},"noise":false}]}'></textarea>
+      <textarea id="importText" rows="6" placeholder='ここにClaudeが出力したJSONを貼り付け…&#10;例：{"labs":[{"date":"2026-07-13","vals":{"tT":2000,"E2":35,"Ht":48.5}}],"inbody":[{"date":"2026-07-13","vals":{"wt":66.5,"smm":32.8,"tbw":42.2},"machine":"anytime","noise":false}]}&#10;※ machine は anytime／funaki／other（省略時は既存の値を維持、なければ不明）'></textarea>
       <button class="btn primary" style="margin-top:10px;" onclick="app.doImport()">取り込む</button>
       <div id="importResult" style="margin-top:10px;"></div>
     </div>
@@ -382,7 +402,13 @@
     <input type="date" class="datein" id="ibDate">
     <div class="card">
       <div class="labgrid" id="ibFields"></div>
-      <div class="hint">火 or 水のトレ前・夕食前など、毎回同じ条件で測ると推移が正確になります。<b>体脂肪率・骨格筋量の単発値は水分で±2%振れるため、平均で判断。</b></div>
+      <div class="hint">火 or 水のトレ前・夕食前など、毎回同じ条件で測ると推移が正確になります。<b>体脂肪率・骨格筋量の単発値は水分で±2%振れるため、平均で判断。</b>体水分量(tbw)は任意。</div>
+    </div>
+    <div class="card ibm-card" id="ibmCard">
+      <div class="ibm-ttl"><span>🏷 測定した機械</span><span id="ibmState"></span></div>
+      <div class="ibmsel" id="ibmSel"></div>
+      <div class="ibm-hint" id="ibmHint"></div>
+      <div class="hint" style="margin:7px 0 0;">機械ごとに値がズレるため、同じ機械どうしで比べます。曜日では決めず、実際に測った機械を選んでください（前回選んだ機械が初期値）。</div>
     </div>
     <button class="btn primary" onclick="app.saveIB()">InBodyを保存</button>
     <div class="sec-t" style="margin-top:16px;">記録済み</div>
@@ -455,7 +481,12 @@ const MEDS=[
   {k:"ネビド/Cernosデポ",dose:"1000mg",cls:"depot"},{k:"ネビド/Cernosデポ",dose:"750mg",cls:"depot"},{k:"ネビド/Cernosデポ",dose:"500mg",cls:"depot"},{k:"タモキシフェン",dose:"10mg",cls:"serm"},
   {k:"アナストロゾール",dose:"0.5mg",cls:"care"},{k:"アナストロゾール",dose:"0.25mg",cls:"care"},{k:"hCG",dose:"3000IU",cls:"care"},
 ];
-const IB_FIELDS=[{k:"wt",n:"体重",u:"kg"},{k:"smm",n:"骨格筋量",u:"kg"},{k:"mm",n:"筋肉量",u:"kg"},{k:"fat",n:"体脂肪量",u:"kg"},{k:"pbf",n:"体脂肪率",u:"%"},{k:"waist",n:"腹囲(実測)",u:"cm"}];
+const IB_FIELDS=[{k:"wt",n:"体重",u:"kg"},{k:"smm",n:"骨格筋量",u:"kg"},{k:"mm",n:"筋肉量",u:"kg"},{k:"fat",n:"体脂肪量",u:"kg"},{k:"pbf",n:"体脂肪率",u:"%"},{k:"tbw",n:"体水分量",u:"L"},{k:"waist",n:"腹囲(実測)",u:"cm"}];
+// InBody測定機（機械ごとに値がズレるため記録する）。machine未設定の既存レコードは "unknown" 扱い
+const IB_MACHINES=[{k:"anytime",n:"エニタイム"},{k:"funaki",n:"フナキ"},{k:"other",n:"その他"}];
+const IB_MACHINE_ALL=IB_MACHINES.concat([{k:"unknown",n:"不明"}]);
+const ibMachineOf=x=>(x&&IB_MACHINE_ALL.some(m=>m.k===x.machine))?x.machine:"unknown";
+const ibMachineName=k=>(IB_MACHINE_ALL.find(m=>m.k===k)||{n:"不明"}).n;
 const MEASURE=[{k:"waist",n:"📏腹囲",u:"cm",ph:"例 75.0"},{k:"chest",n:"胸囲",u:"cm",ph:"例 98.0"},{k:"shoulder",n:"肩周り",u:"cm",ph:"例 112.0"},{k:"armL",n:"上腕(左)",u:"cm",ph:"例 34.0"},{k:"armR",n:"上腕(右)",u:"cm",ph:"例 34.0"},{k:"thigh",n:"太もも",u:"cm",ph:"例 55.0"},{k:"neck",n:"首",u:"cm",ph:"例 38.0"}];
 const GYMS=[{k:"a",n:"アウンズ",cls:"on-a"},{k:"e",n:"エニタイム",cls:"on-e"},{k:"l",n:"ライフフィット",cls:"on-l"},{k:"o",n:"その他",cls:"on-o"}];
 const PR_BASELINE="2026-08-30"; // この日以降の記録だけを↑判定・提案の基準にする（過去はリセット）
@@ -1256,7 +1287,9 @@ const app={
     catch(e){box.innerHTML='<div class="hint" style="color:var(--warn)">形式を読み取れませんでした。ClaudeにJSON形式で出してもらってください。</div>';return;}
     let nLab=0,nIB=0,nMed=0;
     if(Array.isArray(obj.labs)){obj.labs.forEach(x=>{if(!x.date||!x.vals)return;DB.labs=DB.labs.filter(y=>y.date!==x.date);DB.labs.push({date:x.date,vals:x.vals});nLab++;});DB.labs.sort((a,b)=>a.date<b.date?-1:1);}
-    if(Array.isArray(obj.inbody)){obj.inbody.forEach(x=>{if(!x.date||!x.vals)return;DB.inbody=DB.inbody.filter(y=>y.date!==x.date);DB.inbody.push({date:x.date,vals:x.vals,noise:false});nIB++;});DB.inbody.sort((a,b)=>a.date<b.date?-1:1);}
+    if(Array.isArray(obj.inbody)){obj.inbody.forEach(x=>{if(!x.date||!x.vals)return;const ex=DB.inbody.find(y=>y.date===x.date);
+      const rec={date:x.date,vals:x.vals,noise:false};const mk=IB_MACHINE_ALL.some(m=>m.k===x.machine)?x.machine:(ex&&ex.machine);if(mk)rec.machine=mk; // 機械は指定があれば採用、なければ既存を維持
+      DB.inbody=DB.inbody.filter(y=>y.date!==x.date);DB.inbody.push(rec);nIB++;});DB.inbody.sort((a,b)=>a.date<b.date?-1:1);}
     if(Array.isArray(obj.meds)){obj.meds.forEach(x=>{if(!x.date||!x.name)return;DB.meds.push({date:x.date,name:x.name,dose:x.dose||"",cls:x.cls||"short"});nMed++;});DB.meds.sort((a,b)=>a.date<b.date?-1:1);}
     persist();
     document.getElementById("importText").value="";
@@ -1315,14 +1348,31 @@ const app={
   delMed(d,n,dose){const i=DB.meds.findIndex(m=>m.date===d&&m.name===n&&m.dose===dose);if(i>=0)DB.meds.splice(i,1);persist();this.renderMedHist();},
   // ---- inbody ----
   renderIBInputs(){document.getElementById("ibFields").innerHTML=IB_FIELDS.filter(f=>f.k!=="waist").map(f=>
-    `<div class="labfld"><label>${f.n}<span class="rng"> ${f.u}</span></label><input type="number" step="0.1" inputmode="decimal" id="ib-${f.k}"></div>`).join("");},
+    `<div class="labfld"><label>${f.n}<span class="rng"> ${f.u}${f.k==="tbw"?"（任意）":""}</span></label><input type="number" step="0.1" inputmode="decimal" id="ib-${f.k}"></div>`).join("");
+    this.ibMachine=IB_MACHINES.some(m=>m.k===DB.ibLastMachine)?DB.ibLastMachine:null; // 初期値＝前回選んだ機械
+    const d=document.getElementById("ibDate");if(d&&!d._ibmBound){d._ibmBound=true;d.addEventListener("change",()=>this.renderIBMachine());}
+    this.renderIBMachine();},
+  ibMachine:null,
+  selIBMachine(k){this.ibMachine=(this.ibMachine===k)?null:k;this.renderIBMachine();},
+  // 入力時刻からの参考ヒント（自動では切り替えない）。日付が今日のときだけ表示
+  ibTimeHint(){const d=document.getElementById("ibDate");if(!d||d.value!==todayStr())return "";
+    const h=new Date().getHours();if(h>=0&&h<5)return "🕐 0〜4時台の入力：エニタイムの可能性が高いです（確認して選択）";
+    if(h>=20&&h<23)return "🕗 20〜22時台の入力：フナキの可能性が高いです（確認して選択）";return "";},
+  renderIBMachine(){const sel=document.getElementById("ibmSel");if(!sel)return;const cur=this.ibMachine;
+    sel.innerHTML=IB_MACHINES.map(m=>`<button type="button" class="ibmbtn ibm-${m.k}${cur===m.k?" on":""}" onclick="app.selIBMachine('${m.k}')">${m.n}</button>`).join("");
+    document.getElementById("ibmCard").classList.toggle("ok",!!cur);
+    document.getElementById("ibmState").innerHTML=cur?`<span class="cur">選択中：${ibMachineName(cur)}${cur===DB.ibLastMachine?"（前回と同じ）":""}</span>`:'<span class="need">⚠ 未選択（保存前に選んでください）</span>';
+    document.getElementById("ibmHint").textContent=this.ibTimeHint();},
   saveIB(){const date=document.getElementById("ibDate").value;if(!date)return;const vals={};
     IB_FIELDS.filter(f=>f.k!=="waist").forEach(f=>{const v=document.getElementById("ib-"+f.k).value;if(v!=="")vals[f.k]=parseFloat(v);});
     if(!Object.keys(vals).length){this.toast("値がありません");return;}
+    let machine=this.ibMachine;
+    if(!machine){if(!confirm("測定した機械が選ばれていません。\n機械「不明」として保存しますか？\n（あとで記録済み一覧のタグを押せば変更できます）"))return;machine="unknown";}
     const ex=DB.inbody.find(x=>x.date===date);const keep={};
     if(ex&&ex.vals)MEASURE.forEach(m=>{if(ex.vals[m.k]!=null)keep[m.k]=ex.vals[m.k];});
-    DB.inbody=DB.inbody.filter(x=>x.date!==date);DB.inbody.push({date,vals:Object.assign(vals,keep),noise:false});DB.inbody.sort((a,b)=>a.date<b.date?-1:1);persist();
-    IB_FIELDS.filter(f=>f.k!=="waist").forEach(f=>document.getElementById("ib-"+f.k).value="");this.toast("InBodyを保存 ✓");this.renderIBHist();},
+    DB.inbody=DB.inbody.filter(x=>x.date!==date);DB.inbody.push({date,vals:Object.assign(vals,keep),noise:false,machine});DB.inbody.sort((a,b)=>a.date<b.date?-1:1);
+    if(machine!=="unknown")DB.ibLastMachine=machine;persist();
+    IB_FIELDS.filter(f=>f.k!=="waist").forEach(f=>document.getElementById("ib-"+f.k).value="");this.toast(`InBodyを保存 ✓（${ibMachineName(machine)}）`);this.renderIBMachine();this.renderIBHist();},
   renderMeasureInputs(){const el=document.getElementById("measFields");if(!el)return;
     el.innerHTML=MEASURE.map(m=>`<div class="labfld"><label>${m.n}<span class="rng"> ${m.u}</span></label><input type="number" step="0.1" inputmode="decimal" id="meas-${m.k}" placeholder="${m.ph}"></div>`).join("");},
   saveMeasure(){const date=document.getElementById("measDate").value;if(!date){this.toast("日付を選択");return;}
@@ -1332,15 +1382,25 @@ const app={
     if(ex){Object.assign(ex.vals,vals);}
     else{DB.inbody.push({date,vals,noise:false});DB.inbody.sort((a,b)=>a.date<b.date?-1:1);}
     persist();MEASURE.forEach(m=>document.getElementById("meas-"+m.k).value="");this.toast("実測サイズを保存 ✓");this.renderIBHist();},
+  ibEditDate:null,
   renderIBHist(){const el=document.getElementById("ibHist");const s=[...DB.inbody].reverse();
     if(!s.length){el.innerHTML='<div class="empty">記録なし</div>';return;}
     el.innerHTML=s.map(x=>{const parts=[];
       if(x.vals.wt!=null)parts.push("体重"+x.vals.wt);
       if(x.vals.smm!=null)parts.push("骨格筋"+x.vals.smm);
       if(x.vals.fat!=null)parts.push("脂肪"+x.vals.fat);
+      if(x.vals.tbw!=null)parts.push("水分"+x.vals.tbw);
       MEASURE.forEach(m=>{if(x.vals[m.k]!=null)parts.push(m.n+x.vals[m.k]);});
-      return `<div class="row"><div class="l">${parts.join(" / ")||"-"}<span class="dt"> ${x.date.slice(5)}</span></div>
-      <button class="del" onclick="app.delIB('${x.date}')">×</button></div>`;}).join("");},
+      // 機械タグ：InBody値がある行のみ（朝体重・実測サイズのみの行は対象外）。タップで変更
+      const isIB=!x.amWt&&IB_FIELDS.some(f=>f.k!=="waist"&&x.vals[f.k]!=null);
+      const mk=ibMachineOf(x);
+      const tag=x.amWt?'<span class="ibmtag ibm-am">朝体重</span>':isIB?`<span class="ibmtag ibm-${mk}" title="タップで機械を変更" onclick="app.editIBMachine('${x.date}')">${ibMachineName(mk)} ✎</span>`:"";
+      const edit=(isIB&&this.ibEditDate===x.date)?`<div class="ibm-edit"><div class="ibmsel">${IB_MACHINE_ALL.map(m=>`<button type="button" class="ibmbtn sm ibm-${m.k}${mk===m.k?" on":""}" onclick="app.setIBMachine('${x.date}','${m.k}')">${m.n}</button>`).join("")}</div></div>`:"";
+      return `<div class="row" style="flex-wrap:wrap;"><div class="l" style="flex:1;">${tag}${parts.join(" / ")||"-"}<span class="dt"> ${x.date.slice(5)}</span></div>
+      <button class="del" onclick="app.delIB('${x.date}')">×</button>${edit}</div>`;}).join("");},
+  editIBMachine(d){this.ibEditDate=(this.ibEditDate===d)?null:d;this.renderIBHist();},
+  setIBMachine(d,k){const x=DB.inbody.find(y=>y.date===d);if(!x)return;if(k==="unknown")delete x.machine;else x.machine=k;
+    persist();this.ibEditDate=null;this.toast(`${d.slice(5)} の機械を「${ibMachineName(k)}」に変更 ✓`);this.renderIBHist();},
   delIB(d){DB.inbody=DB.inbody.filter(x=>x.date!==d);persist();this.renderIBHist();},
   // ---- graph ----
   renderGraph(){const sel=document.getElementById("graphSel");
@@ -1348,7 +1408,7 @@ const app={
       const groups=[["── ホルモン ──",[["tT","総テストステロン"],["fT","遊離T"],["E2","エストラジオール"],["PRL","プロラクチン"],["LH","LH"],["FSH","FSH"]]],
         ["── 安全性 ──",[["Ht","ヘマトクリット"],["Hb","血色素"],["HDL","HDL"],["LDL","LDL"],["TG","中性脂肪"],["CK","CK"],["eGFR","eGFR"],["Cr","クレアチニン"],["cysC","シスタチンC"],["BUN","尿素窒素"],["Plt","血小板"],["WBC","白血球"]]],
         ["── 実測サイズ ──",[["ib_waist","📏腹囲"],["ib_chest","胸囲"],["ib_shoulder","肩周り"],["ib_armL","上腕(左)"],["ib_armR","上腕(右)"],["ib_thigh","太もも"],["ib_neck","首"]]],
-        ["── InBody ──",[["ib_wt","体重"],["ib_smm","骨格筋量"],["ib_mm","筋肉量"],["ib_fat","体脂肪量"],["ib_pbf","体脂肪率"]]],
+        ["── InBody ──",[["ib_wt","体重"],["ib_smm","骨格筋量"],["ib_mm","筋肉量"],["ib_fat","体脂肪量"],["ib_pbf","体脂肪率"],["ib_tbw","体水分量"]]],
         ["── 定刻 ──",[["punct_week","⏰ 定刻達成率(週次)"],["punct_day","⏰ 定刻達成率(日次)"]]],
         ["── トレMAX ──",MENU.flatMap(m=>m.ex).concat(Object.values(DB.customEx||{}).flat()).filter((e,i,a)=>a.findIndex(x=>x.n===e.n)===i).map(e=>["tr_"+e.n,e.n.replace("★","")])]];
       groups.forEach(([label,items])=>{const og=document.createElement("optgroup");og.label=label;
