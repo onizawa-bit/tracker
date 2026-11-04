@@ -932,6 +932,40 @@ if(DB&&DB.meds&&DB.labs&&!DB._data1015Added){
   DB.labs.sort((a,b)=>a.date<b.date?-1:1);
   DB._data1015Added=true;localStorage.setItem("anzu_tracker_v1",JSON.stringify(DB));
 }
+// 一度だけ：10/12〜11/3 の採血・InBody・投与（冪等：同日=採血／同日+機械=InBody／同日+薬名=投与 が既にあれば欠けている項目だけ補い、既存値は上書きしない）
+if(DB&&DB.meds&&DB.labs&&DB.inbody&&!DB._data1104Added){
+  const fill=(dst,src)=>{Object.keys(src).forEach(k=>{if(dst[k]==null)dst[k]=src[k];});};
+  // 投与
+  [["2026-10-12","30mg"],["2026-10-15","40mg"],["2026-10-19","40mg"],["2026-10-22","30mg"],["2026-10-26","30mg"],["2026-10-29","20mg"],["2026-11-02","30mg"]].forEach(([date,dose])=>{
+    if(!DB.meds.some(m=>m.date===date&&m.name==="エナルモンデポ"))DB.meds.push({date,name:"エナルモンデポ",dose,cls:"short"});
+  });
+  DB.meds.sort((a,b)=>a.date<b.date?-1:1);
+  // 採血
+  [["2026-10-12",{tT:1749.8,fT:18.0,E2:31.4,Ht:43.7,Hb:13.7,HDL:51,LDL:59,TG:48,eGFR:63.1,Cr:1.04,CK:426,AST:35,ALT:31,PRL:10.3,LH:0.5,FSH:0.6,WBC:3470,RBC:475,UA:5.3,Na:141}],
+   ["2026-10-19",{tT:2301.9,fT:26.6,E2:62.7,Ht:46.8,Hb:15.0,HDL:57,LDL:57,TG:71,eGFR:60.0,Cr:1.09,CK:221,AST:36,ALT:43,PRL:13.5,LH:0.4,FSH:0.5,WBC:4470,RBC:522,UA:5.1,Na:138}],
+   ["2026-10-26",{tT:2724.5,E2:64.2,Ht:47.4,Hb:15.5,HDL:59,LDL:67,TG:40,eGFR:58.2,Cr:1.12,CK:967,AST:51,ALT:38,PRL:7.3,LH:0.3,FSH:0.3,WBC:5410,RBC:528,UA:6.1,Na:141}],
+   ["2026-11-02",{tT:2308.1,fT:30.2,E2:40.9,Ht:47.5,Hb:15.0,HDL:53,LDL:63,TG:63,eGFR:58.2,Cr:1.12,CK:476,AST:37,ALT:32,PRL:8.5,LH:0.2,FSH:0.2,WBC:3410,RBC:519,UA:5.3,Na:138}]
+  ].forEach(([d,v])=>{const ex=DB.labs.find(x=>x.date===d);if(ex){ex.vals=ex.vals||{};fill(ex.vals,v);}else DB.labs.push({date:d,vals:v});});
+  DB.labs.sort((a,b)=>a.date<b.date?-1:1);
+  // InBody：10/21 に wt63.3 の記録があれば、それはエニタイムの記録が日付を誤ったもの → 10/20 anytime へ移す
+  DB.inbody.forEach(x=>{if(x.date==="2026-10-21"&&x.vals&&x.vals.wt===63.3&&!x.amWt){x.date="2026-10-20";if(!x.machine||x.machine==="unknown")x.machine="anytime";}});
+  const same=(x,mk)=>!x.machine||x.machine==="unknown"||x.machine===mk; // 機械未設定の既存記録は同じ測定とみなして補う
+  [["2026-10-14","unknown",{wt:63.4,smm:32.0,mm:53.6,fat:6.7,pbf:10.6}],
+   ["2026-10-16","unknown",{wt:63.6,smm:32.4,mm:54.1,fat:6.3,pbf:9.9}],
+   ["2026-10-20","anytime",{wt:63.3,smm:33.0,mm:55.2,fat:4.9,pbf:7.8}],
+   ["2026-10-21","funaki",{wt:63.0,smm:32.6,mm:54.6,fat:5.3,pbf:8.3,tbw:42.9}],
+   ["2026-10-27","anytime",{wt:61.7,smm:33.2,mm:55.2,fat:3.3,pbf:5.3}],
+   ["2026-10-28","funaki",{wt:61.5,smm:31.2,mm:52.2,fat:6.2,pbf:10.1,tbw:40.6}],
+   ["2026-11-01","anytime",{wt:62.6,smm:33.6,mm:55.9,fat:3.6,pbf:5.7,tbw:43.4}],
+   ["2026-11-03","anytime",{wt:61.6,smm:32.8,mm:54.8,fat:3.7,pbf:6.0,tbw:42.6}]
+  ].forEach(([d,mk,v])=>{
+    const ex=DB.inbody.find(x=>x.date===d&&!x.amWt&&(x.machine===mk||same(x,mk)));
+    if(ex){ex.vals=ex.vals||{};fill(ex.vals,v);if(mk!=="unknown"&&(!ex.machine||ex.machine==="unknown"))ex.machine=mk;}
+    else{const rec={date:d,vals:v,noise:false};if(mk!=="unknown")rec.machine=mk;DB.inbody.push(rec);}
+  });
+  DB.inbody.sort((a,b)=>a.date<b.date?-1:1);
+  DB._data1104Added=true;localStorage.setItem("anzu_tracker_v1",JSON.stringify(DB));
+}
 if(!DB){
   DB={training:[],labs:[],meds:[],inbody:[],ongoing:[],customEx:{},procedures:[],noAlc:{},cond:{},punct:{},seeded:true};
   // seed labs
