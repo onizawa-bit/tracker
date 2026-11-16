@@ -421,7 +421,7 @@
         <ol class="steps">
           <li>パソコンかスマホのブラウザで <b>script.google.com</b> を開き（Google Drive と同じアカウント）、「新しいプロジェクト」。</li>
           <li>エディタの中身を全部消して、下のコードを貼り付け（「コードをコピー」）。左上の名前は「トラッカー同期」など。</li>
-          <li>左の歯車「プロジェクトの設定」→ 一番下「スクリプト プロパティ」→「プロパティを追加」。プロパティ <b>KEY</b>、値は好きな合言葉（上の欄と同じものを入れる）→ 保存。</li>
+          <li>コード5行目の <b>KEY_DEFAULT = "ここを合言葉に書き換える"</b> の文字を好きな合言葉に書き換えて保存（⌘S／💾）。上の「合言葉」欄にも同じものを入れる。</li>
           <li>右上「デプロイ」→「新しいデプロイ」→ 歯車で種類「<b>ウェブアプリ</b>」→ 実行ユーザー「<b>自分</b>」、アクセスできるユーザー「<b>全員</b>」→ デプロイ。初回は権限の承認（Drive の読み取り）を許可。</li>
           <li>表示された「ウェブアプリ URL」（…/exec で終わる）をコピーして上の欄に貼り、合言葉も入れて「設定を保存」→「今すぐ同期」。</li>
         </ol>
@@ -612,14 +612,16 @@ const SYNC_KEY="anzu_tracker_sync"; // 自動同期の設定（URL・合言葉�
 // Google Apps Script に貼るコード（Drive「ヘルスケア同期」の HealthAutoExport-*.json を読み、必要な項目だけ返す）
 const GAS_CODE=String.raw`// あんずトラッカー 自動同期（Google Apps Script）
 // Drive の「ヘルスケア同期」フォルダにある HealthAutoExport-YYYY-MM-DD.json を読み、
-// 栄養・歩数（日合計）・体重だけを返します。合言葉はスクリプト プロパティ KEY に設定。
+// 栄養・歩数（日合計）・体重だけを返します。
+// 合言葉：下の KEY_DEFAULT を書き換える（スクリプト プロパティ KEY を設定した場合はそちらが優先）
 const FOLDER_NAME = "ヘルスケア同期";
+const KEY_DEFAULT = "ここを合言葉に書き換える";
 const KEEP = ["dietary_energy","protein","total_fat","carbohydrates","fiber","sodium","step_count","weight_body_mass"];
 
 function doGet(e) {
   const p = (e && e.parameter) || {};
-  const key = PropertiesService.getScriptProperties().getProperty("KEY");
-  if (!key || p.key !== key) return out_({error: "unauthorized"});
+  const key = PropertiesService.getScriptProperties().getProperty("KEY") || KEY_DEFAULT;
+  if (!key || key === "ここを合言葉に書き換える" || p.key !== key) return out_({error: "unauthorized"});
   const it = DriveApp.getFoldersByName(FOLDER_NAME);
   if (!it.hasNext()) return out_({error: "folder not found: " + FOLDER_NAME});
   const files = it.next().getFiles(); const texts = [];
