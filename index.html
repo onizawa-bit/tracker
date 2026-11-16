@@ -133,10 +133,10 @@
 
   /* lab input */
   .labgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-  .labfld{display:flex;flex-direction:column;}
+  .labfld{display:flex;flex-direction:column;min-width:0;}
   .labfld label{font-size:11px;font-weight:700;color:var(--navy);margin-bottom:3px;}
   .labfld .rng{font-size:9px;color:var(--mute);font-weight:600;}
-  .labfld input{padding:9px;border:1px solid var(--line);border-radius:8px;font-size:15px;font-family:inherit;text-align:center;}
+  .labfld input{width:100%;min-width:0;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:15px;font-family:inherit;text-align:center;}
   .labfld input:focus{outline:none;border-color:var(--orange);}
   details{margin:8px 0;}
   summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--care);padding:6px 0;}
@@ -253,6 +253,41 @@
   .hitem.open .hbody{display:block;}
   .hitem .hex{font-size:12px;margin-top:5px;}
   .hitem .hex b{color:var(--navy);}
+  /* nutrition */
+  .nu-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;}
+  .nu-grid .labfld input{padding:8px 4px;font-size:14px;}
+  .nu-row{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:6px;}
+  .nu-row.ex{opacity:.6;background:#f3f1ea;}
+  .nu-hd{display:flex;justify-content:space-between;align-items:center;gap:6px;}
+  .nu-hd .d{font-size:13px;font-weight:800;color:var(--navy);}
+  .nu-hd .d small{font-size:10px;color:var(--mute);font-weight:700;margin-left:3px;}
+  .nu-hd .kc{font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;}
+  .nu-hd .kc small{font-size:10.5px;font-weight:700;margin-left:3px;}
+  .nu-sub{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11px;color:var(--ink);margin-top:4px;font-variant-numeric:tabular-nums;}
+  .nu-sub span b{color:var(--navy);}
+  .nu-sub .dif{font-size:10px;font-weight:700;}
+  .nu-act{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:11px;}
+  .nu-act label{display:flex;align-items:center;gap:4px;color:var(--mute);font-weight:700;cursor:pointer;}
+  .nu-act button{background:#eee9df;border:none;border-radius:7px;padding:4px 9px;font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;color:var(--ink);}
+  .nu-act .sp{flex:1;}
+  .nu-tag{display:inline-block;font-size:9.5px;font-weight:800;padding:1px 6px;border-radius:6px;background:#fde8e4;color:var(--down);margin-left:4px;vertical-align:middle;}
+  .ov{color:var(--down);} .un{color:var(--low);} .ok{color:var(--up);}
+  .wk-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px;}
+  .wk{width:100%;border-collapse:collapse;font-size:11px;font-variant-numeric:tabular-nums;min-width:520px;}
+  .wk th:first-child,.wk td:first-child{position:sticky;left:0;background:var(--paper);z-index:1;}
+  .wk th:first-child{background:#f6f2ea;}
+  .wk th{background:#f6f2ea;color:var(--navy);font-size:10px;font-weight:800;padding:6px 5px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line);}
+  .wk th:first-child,.wk td:first-child{text-align:left;}
+  .wk td{padding:7px 5px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap;}
+  .wk tr.ref td{color:var(--mute);}
+  .wk tr.exw td{color:#b0b4b9;text-decoration:line-through;}
+  .wk tr.exw td:first-child,.wk tr.exw td:last-child{text-decoration:none;}
+  .wk td.tdee{font-weight:800;color:var(--orange-d);font-size:12.5px;}
+  .wk tr.ref td.tdee,.wk tr.exw td.tdee{color:inherit;font-weight:700;}
+  .wk .xb{background:none;border:1px solid var(--line);border-radius:6px;padding:2px 6px;font-size:10px;font-family:inherit;cursor:pointer;color:var(--mute);}
+  .wk .xb.on{background:#fde8e4;border-color:#f0c0b8;color:var(--down);}
+  .filebtn{display:block;width:100%;text-align:center;background:var(--navy);color:#fff;border-radius:10px;padding:12px;font-size:14px;font-weight:800;cursor:pointer;}
+  .filebtn input{display:none;}
 </style>
 </head>
 <body>
@@ -267,6 +302,7 @@
     <button data-tab="labs">血液</button>
     <button data-tab="med">薬剤</button>
     <button data-tab="inbody">InBody</button>
+    <button data-tab="nutri">栄養</button>
     <button data-tab="import">取込</button>
     <button data-tab="graph">推移</button>
     <button data-tab="hist">履歴</button>
@@ -339,6 +375,7 @@
     </div>
     <button class="btn primary" onclick="app.saveLab()">採血を保存</button>
     <div class="sec-t" style="margin-top:16px;">記録済みの採血</div>
+    <div class="hint">※ 2026-11-18以降の採血は「水曜朝・空腹」。中性脂肪(TG)はそれ以前の値と直接比較しない（推移グラフにも境界線あり）。</div>
     <div id="labHist"></div>
   </div>
 
@@ -365,10 +402,16 @@
 
   <!-- IMPORT -->
   <div class="view" id="view-import">
-    <div class="sec-t">チャットから取り込み</div>
+    <div class="sec-t">Health Auto Export から取り込み（栄養・歩数・朝体重）</div>
+    <div class="hint">iPhoneのHealth Auto Exportが Google Drive「ヘルスケア同期」に出す <b>HealthAutoExport-日付.json</b> をそのまま読みます。「ファイルを選ぶ」で複数日まとめて選べます（Files アプリ → Google Drive）。中身を下の欄に貼り付けても同じです。</div>
+    <div class="card">
+      <label class="filebtn">📂 JSONファイルを選んで取り込む<input type="file" id="haeFile" accept=".json,application/json" multiple onchange="app.importHAEFiles(this.files)"></label>
+      <div class="hint" style="margin:8px 0 0;">読む項目：摂取エネルギー(kcal)・タンパク質・脂質・炭水化物・食物繊維・ナトリウム(→食塩換算)・歩数(1日合計)・朝体重(4〜12時の最初の1件)。他の項目は無視します。同じ日付は上書き、「記録漏れ」チェックは保持します。</div>
+    </div>
+    <div class="sec-t" style="margin-top:18px;">チャットから取り込み</div>
     <div class="hint">Claudeのチャットに検査結果やInBodyのスクショ／PDFを上げ、返ってきた取込用テキスト（JSON）をここに貼り付けて「取り込む」を押すと、血液・InBodyに自動反映されます。手入力は不要です。</div>
     <div class="card">
-      <textarea id="importText" rows="6" placeholder='ここにClaudeが出力したJSONを貼り付け…&#10;例：{"labs":[{"date":"2026-07-13","vals":{"tT":2000,"E2":35,"Ht":48.5}}],"inbody":[{"date":"2026-07-13","vals":{"wt":66.5,"smm":32.8,"tbw":42.2},"machine":"anytime","noise":false}]}&#10;※ machine は anytime／funaki／other（省略時は既存の値を維持、なければ不明）'></textarea>
+      <textarea id="importText" rows="6" placeholder='ここにClaudeが出力したJSONを貼り付け…&#10;例：{"labs":[{"date":"2026-07-13","vals":{"tT":2000,"E2":35,"Ht":48.5}}],"inbody":[{"date":"2026-07-13","vals":{"wt":66.5,"smm":32.8,"tbw":42.2},"machine":"anytime","noise":false}]}&#10;※ machine は anytime／funaki／other（省略時は既存の値を維持、なければ不明）&#10;※ 栄養の手作りJSON：{"nutrition":[{"date":"2026-11-16","kcal":2220,"p":157,"f":70.1,"c":240,"fiber":12.3,"salt":9.0,"steps":6500}]}&#10;※ Health Auto Export の JSON（{"data":{"metrics":[...]}}）もここに貼れます'></textarea>
       <button class="btn primary" style="margin-top:10px;" onclick="app.doImport()">取り込む</button>
       <div id="importResult" style="margin-top:10px;"></div>
     </div>
@@ -378,7 +421,7 @@
     <div class="hint">記録はこの端末のブラウザ内に保存されます。機種変更・ブラウザ更新で消えないよう、時々バックアップを取ってください。</div>
     <div class="card">
       <button class="btn primary" onclick="app.exportData()">📤 バックアップを書き出す（ファイル保存）</button>
-      <div class="hint" style="margin:8px 0 4px;">↑ 全データ（トレ・血液・薬剤・InBody）をファイルに保存。メールやメモに貼れる形でコピーもできます。</div>
+      <div class="hint" style="margin:8px 0 4px;">↑ 全データ（トレ・血液・薬剤・InBody・栄養）をファイルに保存。メールやメモに貼れる形でコピーもできます。</div>
       <button class="btn" style="background:#eee9df;margin-top:6px;" onclick="app.copyData()">📋 バックアップをコピー</button>
       <div style="border-top:1px solid var(--line);margin:14px 0 10px;"></div>
       <div class="hint" style="margin-bottom:6px;">復元：バックアップの中身を下に貼り付けて「復元」。<b style="color:var(--warn);">現在のデータは置き換わります。</b></div>
@@ -415,11 +458,32 @@
     <div id="ibHist"></div>
   </div>
 
+  <!-- NUTRI -->
+  <div class="view" id="view-nutri">
+    <div class="sec-t">🍽 栄養・歩数を手入力</div>
+    <input type="date" class="datein" id="nutriDate">
+    <div class="card">
+      <div class="nu-grid" id="nutriFields"></div>
+      <div class="hint" style="margin:8px 0 0;">普段は取込タブの Health Auto Export で自動。ここは書き出しが止まった日の保険です。測った項目だけ入れて保存（同じ日付は上書き、空欄は変更しません）。</div>
+    </div>
+    <button class="btn primary" onclick="app.saveNutri()">栄養を保存</button>
+    <div class="sec-t" style="margin-top:16px;">直近30日 <span id="nutriGoalTxt" style="font-size:10.5px;color:var(--mute);font-weight:700;"></span></div>
+    <div class="hint">kcal・P・F・Cの右の小さな数字は目標との差。<b>「記録漏れ」にチェックした日は週平均・推定TDEEから外れます。</b>不正確な記録は記録しないより悪い、が原則。</div>
+    <div id="nutriList"></div>
+    <button class="btn ghost" style="margin-top:4px;" id="nutriMoreBtn" onclick="app.nutriShowAll=!app.nutriShowAll;app.renderNutri()">それ以前も表示</button>
+  </div>
+
   <!-- GRAPH -->
   <div class="view" id="view-graph">
     <select id="graphSel"></select>
     <svg id="graph" viewBox="0 0 620 300"></svg>
     <div class="hint" id="graphNote"></div>
+    <div class="sec-t" style="margin-top:18px;">📊 週次サマリー・推定TDEE</div>
+    <div class="hint">月〜日の週単位。平均kcal・平均歩数は「値があり、記録漏れでない日」の平均。朝体重は実時刻4〜12時の最初の1件を週平均。<b>推定TDEE＝平均kcal −（前週差kg×1100）</b>（7700kcal/kg÷7日）。<br>
+      ・有効日数が5日未満の週は<span style="color:var(--mute);font-weight:700;">グレー＝参考値</span>　・「除外」を押した週（カーボアップ・大会直後など）は計算から外す<br>
+      ・<b>最初の3〜4週は水分・グリコーゲンの変動で値が安定しません。</b>収束してきた値を維持カロリーとみなす</div>
+    <div class="wk-wrap"><table class="wk" id="weekTbl"></table></div>
+    <div class="hint" id="weekNote" style="margin-top:8px;"></div>
   </div>
 
   <!-- COND removed -->
@@ -510,6 +574,12 @@ const ONGOING_OPTS=[
 
 // ================= STORAGE + SEED =================
 const KEY="anzu_tracker_v1";
+// 栄養：現在の目標（増量期）。P/F/C は g
+const NUTRI_GOAL={kcal:2200,p:140,f:50,c:298};
+const NUTRI_FIELDS=[{k:"kcal",n:"kcal",u:"kcal",st:"1"},{k:"p",n:"P",u:"g",st:"0.1"},{k:"f",n:"F",u:"g",st:"0.1"},{k:"c",n:"C",u:"g",st:"0.1"},{k:"fiber",n:"食物繊維",u:"g",st:"0.1"},{k:"salt",n:"食塩",u:"g",st:"0.1"},{k:"steps",n:"歩数",u:"歩",st:"1"},{k:"amWt",n:"朝体重",u:"kg",st:"0.1"}];
+// Health Auto Export の metric name → 内部キー（他の項目は無視）
+const HAE_MAP={dietary_energy:"kcal",protein:"p",total_fat:"f",carbohydrates:"c",fiber:"fiber",sodium:"sodium",step_count:"steps",weight_body_mass:"weight"};
+const NUTRI_CALC_FROM="2026-11-16"; // これより前の日は初回取込時に「記録漏れ」扱い（過去のカロミル記録は網羅性が低いため）
 function load(){try{return JSON.parse(localStorage.getItem(KEY));}catch(e){return null;}}
 function persist(){localStorage.setItem(KEY,JSON.stringify(DB));}
 let DB=load();
@@ -518,6 +588,8 @@ if(DB&&!DB.customEx)DB.customEx={};
 if(DB&&!DB.procedures)DB.procedures=[];
 if(DB&&!DB.noAlc)DB.noAlc={};
 if(DB&&!DB.punct)DB.punct={};
+if(DB&&!DB.nutrition)DB.nutrition=[]; // 栄養・歩数・朝体重（Health Auto Export／手入力）
+if(DB&&!DB.weekExcl)DB.weekExcl={"2026-11-09":true}; // 週単位の除外（11/9〜の週＝カーボアップ・大会で未記録4日）
 // 一度だけ：7/13のクールスカルプティングを登録（既存ユーザー向け）
 if(DB&&DB.procedures&&!DB._csAdded){
   if(!DB.procedures.some(p=>p.date==="2026-07-13"&&p.name==="クールスカルプティング"))
@@ -967,7 +1039,7 @@ if(DB&&DB.meds&&DB.labs&&DB.inbody&&!DB._data1104Added){
   DB._data1104Added=true;localStorage.setItem("anzu_tracker_v1",JSON.stringify(DB));
 }
 if(!DB){
-  DB={training:[],labs:[],meds:[],inbody:[],ongoing:[],customEx:{},procedures:[],noAlc:{},cond:{},punct:{},seeded:true};
+  DB={training:[],labs:[],meds:[],inbody:[],ongoing:[],customEx:{},procedures:[],noAlc:{},cond:{},punct:{},nutrition:[],weekExcl:{"2026-11-09":true},seeded:true};
   // seed labs
   const L=[
     ["2026-05-13",{tT:794.4,fT:13.2,E2:28.7,Ht:47.2,Hb:14.8,HDL:77,eGFR:78.3,PRL:10.3,LH:3.9,FSH:3.2,LDL:117,TG:48,AST:20,ALT:14,CK:178,Cr:0.86,WBC:2910,RBC:509,UA:6.4,Na:140}],
@@ -1010,13 +1082,13 @@ if(!DB){
 const todayStr=()=>{const d=new Date(Date.now()-4*3600*1000);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
 const jpDate=()=>{const d=new Date(Date.now()-4*3600*1000);const w=["日","月","火","水","木","金","土"][d.getDay()];return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日（${w}）`;};
 document.getElementById("today").textContent=jpDate();
-["labDate","medDate","ibDate","procDate"].forEach(id=>{const e=document.getElementById(id);if(e)e.value=todayStr();});
+["labDate","medDate","ibDate","procDate","nutriDate"].forEach(id=>{const e=document.getElementById(id);if(e)e.value=todayStr();});
 
 // ================= APP =================
 const app={
   partIdx:0,
   init(){this.partIdx=0;
-    this.renderParts();this.renderEx();this.renderTodayRecord();this.renderLabInputs();this.renderMedBtns();this.renderIBInputs();this.renderMeasureInputs();this.renderPunct();},
+    this.renderParts();this.renderEx();this.renderTodayRecord();this.renderLabInputs();this.renderMedBtns();this.renderIBInputs();this.renderMeasureInputs();this.renderNutriInputs();this.renderPunct();},
   toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1600);},
   // ---- training (part-based, one session per date) ----
   renderParts(){const el=document.getElementById("partSel");el.innerHTML="";
@@ -1319,7 +1391,10 @@ const app={
     let obj;
     try{const clean=raw.replace(/```json/g,"").replace(/```/g,"").trim();obj=JSON.parse(clean);}
     catch(e){box.innerHTML='<div class="hint" style="color:var(--warn)">形式を読み取れませんでした。ClaudeにJSON形式で出してもらってください。</div>';return;}
-    let nLab=0,nIB=0,nMed=0;
+    // Health Auto Export 形式（{"data":{"metrics":[...]}}）ならそのまま栄養取込へ
+    if(obj&&obj.data&&Array.isArray(obj.data.metrics)){const r=this.importNutrition(this.parseHAE(obj));persist();document.getElementById("importText").value="";box.innerHTML=this.nutriImportHtml([r]);this.toast("取り込みました ✓");return;}
+    let nLab=0,nIB=0,nMed=0,nuR=null;
+    if(Array.isArray(obj.nutrition)){nuR=this.importNutrition(obj.nutrition.filter(x=>x&&x.date).map(x=>{const r={date:x.date};NUTRI_FIELDS.forEach(f=>{if(x[f.k]!=null&&x[f.k]!=="")r[f.k]=parseFloat(x[f.k]);});if(x.excluded!=null)r.excluded=!!x.excluded;return r;}));}
     if(Array.isArray(obj.labs)){obj.labs.forEach(x=>{if(!x.date||!x.vals)return;DB.labs=DB.labs.filter(y=>y.date!==x.date);DB.labs.push({date:x.date,vals:x.vals});nLab++;});DB.labs.sort((a,b)=>a.date<b.date?-1:1);}
     if(Array.isArray(obj.inbody)){obj.inbody.forEach(x=>{if(!x.date||!x.vals)return;const ex=DB.inbody.find(y=>y.date===x.date);
       const rec={date:x.date,vals:x.vals,noise:false};const mk=IB_MACHINE_ALL.some(m=>m.k===x.machine)?x.machine:(ex&&ex.machine);if(mk)rec.machine=mk; // 機械は指定があれば採用、なければ既存を維持
@@ -1328,7 +1403,7 @@ const app={
     persist();
     document.getElementById("importText").value="";
     box.innerHTML=`<div class="feedback" style="background:#e8f2ec;border-color:#bfe0cf;color:#1e5a3a;">
-      取り込み完了 ✓　採血 ${nLab}件 ／ InBody ${nIB}件${nMed?" ／ 薬剤 "+nMed+"件":""}。<br>「血液」「InBody」「推移」タブで確認できます。</div>`;
+      取り込み完了 ✓　採血 ${nLab}件 ／ InBody ${nIB}件${nMed?" ／ 薬剤 "+nMed+"件":""}${nuR?" ／ 栄養 "+nuR.days+"日":""}。<br>「血液」「InBody」「栄養」「推移」タブで確認できます。</div>`;
     this.toast("取り込みました ✓");
   },
   // ---- backup / restore ----
@@ -1356,7 +1431,7 @@ const app={
     catch(e){box.innerHTML='<div class="hint" style="color:var(--warn)">形式が読み取れません。</div>';return;}
     if(!obj||typeof obj!=="object"||!("training" in obj||"labs" in obj)){box.innerHTML='<div class="hint" style="color:var(--warn)">バックアップ形式ではないようです。</div>';return;}
     if(!confirm("現在のデータを、この内容で置き換えます。よろしいですか？"))return;
-    DB=Object.assign({training:[],labs:[],meds:[],inbody:[],ongoing:[],customEx:{},procedures:[],noAlc:{},cond:{},punct:{}},obj);
+    DB=Object.assign({training:[],labs:[],meds:[],inbody:[],ongoing:[],customEx:{},procedures:[],noAlc:{},cond:{},punct:{},nutrition:[],weekExcl:{}},obj);
     persist();document.getElementById("restoreText").value="";
     box.innerHTML='<div class="feedback" style="background:#e8f2ec;border-color:#bfe0cf;color:#1e5a3a;">復元しました ✓ 各タブでご確認ください。</div>';
     this.toast("復元しました ✓");
@@ -1436,6 +1511,101 @@ const app={
   setIBMachine(d,k){const x=DB.inbody.find(y=>y.date===d);if(!x)return;if(k==="unknown")delete x.machine;else x.machine=k;
     persist();this.ibEditDate=null;this.toast(`${d.slice(5)} の機械を「${ibMachineName(k)}」に変更 ✓`);this.renderIBHist();},
   delIB(d){DB.inbody=DB.inbody.filter(x=>x.date!==d);persist();this.renderIBHist();},
+  // ---- nutrition (Health Auto Export / 手入力) ----
+  // HAE JSON → [{date,kcal,p,f,c,fiber,salt,steps,amWt,amWtTime,amWtSrc}]。日付は書き出しファイルの "YYYY-MM-DD HH:MM:SS +0900" の先頭10文字（0時区切り）をそのまま使う
+  parseHAE(obj){const days={};const day=d=>days[d]||(days[d]={date:d});
+    const wts={};
+    (obj.data.metrics||[]).forEach(m=>{const key=HAE_MAP[m.name];if(!key||!Array.isArray(m.data))return;
+      m.data.forEach(pt=>{if(!pt||typeof pt.date!=="string"||typeof pt.qty!=="number"||!isFinite(pt.qty))return;const d=pt.date.slice(0,10),t=pt.date.slice(11,16);
+        if(key==="weight"){(wts[d]||(wts[d]=[])).push({t,q:pt.qty,src:pt.source||""});return;}
+        const r=day(d);r[key]=(r[key]||0)+pt.qty;});});
+    Object.keys(days).forEach(d=>{const r=days[d];
+      if(r.sodium!=null){r.salt=Math.round(r.sodium*2.54/1000*10)/10;delete r.sodium;} // 食塩相当量(g)=Na(mg)×2.54÷1000
+      if(r.steps!=null)r.steps=Math.round(r.steps);
+      ["kcal"].forEach(k=>{if(r[k]!=null)r[k]=Math.round(r[k]);});
+      ["p","f","c","fiber"].forEach(k=>{if(r[k]!=null)r[k]=Math.round(r[k]*10)/10;});});
+    // 朝体重：実時刻 4:00〜12:00 の最初の1件（体重計アプリ・InBodyアプリ等、source は問わない）
+    Object.keys(wts).forEach(d=>{const am=wts[d].filter(w=>w.t>="04:00"&&w.t<"12:00").sort((a,b)=>a.t<b.t?-1:1);if(!am.length)return;
+      const r=day(d);r.amWt=Math.round(am[0].q*10)/10;r.amWtTime=am[0].t;r.amWtSrc=am[0].src;});
+    return Object.values(days).sort((a,b)=>a.date<b.date?-1:1);},
+  // 取込：同じ日付は与えられた項目を上書き、無い項目と「記録漏れ」フラグは保持。NUTRI_CALC_FROM より前の新規日は記録漏れ扱いで入れる
+  importNutrition(recs){const cnt={days:0,kcal:0,steps:0,amWt:0,dates:[]};
+    recs.forEach(r=>{if(!r||!/^\d{4}-\d{2}-\d{2}$/.test(r.date))return;
+      const keys=["kcal","p","f","c","fiber","salt","steps","amWt","amWtTime","amWtSrc"].filter(k=>r[k]!=null);if(!keys.length&&r.excluded==null)return;
+      let ex=DB.nutrition.find(x=>x.date===r.date);
+      if(!ex){ex={date:r.date,excluded:r.date<NUTRI_CALC_FROM};DB.nutrition.push(ex);}
+      keys.forEach(k=>ex[k]=r[k]);if(r.excluded!=null)ex.excluded=!!r.excluded;
+      cnt.days++;cnt.dates.push(r.date);if(r.kcal!=null)cnt.kcal++;if(r.steps!=null)cnt.steps++;if(r.amWt!=null)cnt.amWt++;});
+    DB.nutrition.sort((a,b)=>a.date<b.date?-1:1);return cnt;},
+  nutriImportHtml(results){const all=results.filter(Boolean);const days=[...new Set(all.flatMap(r=>r.dates))].sort();const sum=k=>all.reduce((a,r)=>a+r[k],0);
+    if(!days.length)return '<div class="hint" style="color:var(--warn)">栄養・歩数・体重の項目が見つかりませんでした（Health Auto Export の書き出し項目を確認してください）。</div>';
+    const rng=days.length>1?`${days[0].slice(5)}〜${days[days.length-1].slice(5)}`:days[0].slice(5);
+    const miss=days.filter(d=>{const x=DB.nutrition.find(y=>y.date===d);return !x||x.kcal==null;});
+    return `<div class="feedback" style="background:#e8f2ec;border-color:#bfe0cf;color:#1e5a3a;">取り込み完了 ✓　${rng} の ${days.length}日分<br>栄養(kcal) ${sum("kcal")}日 ／ 歩数 ${sum("steps")}日 ／ 朝体重 ${sum("amWt")}日${miss.length?`<br><span style="color:var(--warn)">⚠ 栄養なし：${miss.map(d=>d.slice(5)).join("・")}（カロミル未記録か、ヘルスケアに未反映）</span>`:""}<br>「栄養」タブで確認、週平均は「推移」タブ下部。</div>`;},
+  importHAEFiles(files){if(!files||!files.length)return;const box=document.getElementById("importResult");const results=[];let left=files.length,bad=[];
+    Array.from(files).forEach(f=>{const rd=new FileReader();rd.onload=()=>{try{const o=JSON.parse(rd.result);
+        if(o&&o.data&&Array.isArray(o.data.metrics))results.push(this.importNutrition(this.parseHAE(o)));
+        else if(o&&Array.isArray(o.nutrition))results.push(this.importNutrition(o.nutrition));
+        else bad.push(f.name);}catch(e){bad.push(f.name);}
+        if(--left===0){persist();box.innerHTML=this.nutriImportHtml(results)+(bad.length?`<div class="hint" style="color:var(--warn)">読めなかったファイル：${bad.join("、")}</div>`:"");this.toast("取り込みました ✓");document.getElementById("haeFile").value="";}};
+      rd.onerror=()=>{bad.push(f.name);if(--left===0){persist();box.innerHTML=this.nutriImportHtml(results)+`<div class="hint" style="color:var(--warn)">読めなかったファイル：${bad.join("、")}</div>`;}};
+      rd.readAsText(f);});},
+  nutriGoal(){return Object.assign({},NUTRI_GOAL,DB.nutriGoal||{});},
+  renderNutriInputs(){const el=document.getElementById("nutriFields");if(!el)return;
+    el.innerHTML=NUTRI_FIELDS.map(f=>`<div class="labfld"><label>${f.n}<span class="rng"> ${f.u}</span></label><input type="number" step="${f.st}" inputmode="decimal" id="nu-${f.k}"></div>`).join("");},
+  saveNutri(){const date=document.getElementById("nutriDate").value;if(!date){this.toast("日付を入れてください");return;}
+    const r={date};NUTRI_FIELDS.forEach(f=>{const v=document.getElementById("nu-"+f.k).value;if(v!=="")r[f.k]=parseFloat(v);});
+    if(Object.keys(r).length===1){this.toast("値がありません");return;}
+    if(r.amWt!=null){const ex=DB.nutrition.find(x=>x.date===date);if(!ex||ex.amWt!==r.amWt){r.amWtTime="";r.amWtSrc="手入力";}}
+    const isNew=!DB.nutrition.some(x=>x.date===date);this.importNutrition([r]);
+    if(isNew){const x=DB.nutrition.find(y=>y.date===date);if(x&&date>=NUTRI_CALC_FROM)x.excluded=false;}
+    persist();NUTRI_FIELDS.forEach(f=>document.getElementById("nu-"+f.k).value="");this.toast("栄養を保存 ✓");this.renderNutri();},
+  editNutri(d){const x=DB.nutrition.find(y=>y.date===d);if(!x)return;document.getElementById("nutriDate").value=d;
+    NUTRI_FIELDS.forEach(f=>{document.getElementById("nu-"+f.k).value=x[f.k]!=null?x[f.k]:"";});window.scrollTo({top:0,behavior:"smooth"});this.toast(d.slice(5)+" を入力欄に読み込みました");},
+  delNutri(d){if(!confirm(d+" の栄養記録を削除しますか？"))return;DB.nutrition=DB.nutrition.filter(x=>x.date!==d);persist();this.renderNutri();},
+  toggleNutriExcl(d){const x=DB.nutrition.find(y=>y.date===d);if(!x)return;x.excluded=!x.excluded;persist();this.renderNutri();},
+  nutriShowAll:false,
+  renderNutri(){this.renderNutriInputs();const g=this.nutriGoal();const gt=document.getElementById("nutriGoalTxt");if(gt)gt.textContent=`目標 ${g.kcal}kcal / P${g.p}・F${g.f}・C${g.c}`;
+    const el=document.getElementById("nutriList");if(!el)return;
+    const cut=new Date(Date.now()-4*3600*1000);cut.setDate(cut.getDate()-30);const cutS=cut.getFullYear()+"-"+String(cut.getMonth()+1).padStart(2,"0")+"-"+String(cut.getDate()).padStart(2,"0");
+    const all=[...DB.nutrition].reverse();const s=this.nutriShowAll?all:all.filter(x=>x.date>=cutS);
+    const more=document.getElementById("nutriMoreBtn");if(more){more.style.display=all.length>s.length||this.nutriShowAll?"block":"none";more.textContent=this.nutriShowAll?"直近30日だけ表示":`それ以前も表示（あと${all.length-s.length}日）`;}
+    if(!s.length){el.innerHTML='<div class="empty">記録なし</div>';return;}
+    const wd=["日","月","火","水","木","金","土"];
+    const dif=(v,goal,unit)=>{if(v==null)return "";const d=Math.round((v-goal)*10)/10;const cls=Math.abs(d)<=goal*0.05?"ok":(d>0?"ov":"un");return `<span class="dif ${cls}">${d>0?"+":""}${unit==="kcal"?Math.round(d):d}</span>`;};
+    el.innerHTML=s.map(x=>{const dt=new Date(x.date+"T00:00:00");
+      const sub=[];
+      if(x.p!=null||x.f!=null||x.c!=null)sub.push(`<span>P<b>${x.p!=null?x.p:"-"}</b>${dif(x.p,g.p)} F<b>${x.f!=null?x.f:"-"}</b>${dif(x.f,g.f)} C<b>${x.c!=null?x.c:"-"}</b>${dif(x.c,g.c)}</span>`);
+      if(x.fiber!=null)sub.push(`<span>繊維<b>${x.fiber}</b>g</span>`);if(x.salt!=null)sub.push(`<span>塩<b>${x.salt}</b>g</span>`);
+      if(x.steps!=null)sub.push(`<span>🚶<b>${x.steps.toLocaleString()}</b>歩</span>`);
+      if(x.amWt!=null)sub.push(`<span>朝体重<b>${x.amWt}</b>kg${x.amWtTime?`<small style="color:var(--mute)"> ${x.amWtTime}</small>`:""}</span>`);
+      return `<div class="nu-row${x.excluded?" ex":""}"><div class="nu-hd"><div class="d">${x.date.slice(5).replace("-","/")}<small>(${wd[dt.getDay()]})</small>${x.excluded?'<span class="nu-tag">記録漏れ</span>':""}</div>
+        <div class="kc">${x.kcal!=null?x.kcal+'<small>kcal</small>'+dif(x.kcal,g.kcal,"kcal"):'<small style="color:var(--mute)">栄養なし</small>'}</div></div>
+        <div class="nu-sub">${sub.join("")}</div>
+        <div class="nu-act"><label><input type="checkbox" ${x.excluded?"checked":""} onchange="app.toggleNutriExcl('${x.date}')">記録漏れ（週平均から除外）</label><span class="sp"></span><button onclick="app.editNutri('${x.date}')">編集</button><button onclick="app.delNutri('${x.date}')">削除</button></div></div>`;}).join("");},
+  // ---- weekly summary / TDEE ----
+  weekKey(d){const dt=new Date(d+"T00:00:00");const day=(dt.getDay()+6)%7;dt.setDate(dt.getDate()-day);return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");},
+  addDays(d,n){const dt=new Date(d+"T00:00:00");dt.setDate(dt.getDate()+n);return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");},
+  // 週ごとの集計。平均kcal・平均歩数＝値があり記録漏れでない日の平均。朝体重週平均＝amWt のある日の平均（記録漏れは食事の網羅性の話なので体重には適用しない）
+  weeklyStats(){const wk={};const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+    DB.nutrition.forEach(x=>{const k=this.weekKey(x.date);const w=wk[k]||(wk[k]={key:k,kcal:[],steps:[],wt:[],days:0,n:0});w.n++;
+      if(x.amWt!=null)w.wt.push(x.amWt);if(x.excluded)return;if(x.kcal!=null){w.kcal.push(x.kcal);w.days++;}if(x.steps!=null)w.steps.push(x.steps);});
+    const keys=Object.keys(wk).sort();const out=[];
+    keys.forEach((k,i)=>{const w=wk[k];const r={key:k,end:this.addDays(k,6),avgKcal:avg(w.kcal),avgSteps:avg(w.steps),avgWt:avg(w.wt),nWt:w.wt.length,days:w.days,excluded:!!(DB.weekExcl||{})[k],ref:w.days<5,diff:null,tdee:null};
+      const prevKey=this.addDays(k,-7);const prev=out.find(o=>o.key===prevKey);
+      if(r.avgWt!=null&&prev&&prev.avgWt!=null)r.diff=Math.round((r.avgWt-prev.avgWt)*100)/100;
+      if(!r.excluded&&r.avgKcal!=null&&r.diff!=null)r.tdee=Math.round(r.avgKcal-r.diff*1100); // 7700kcal/kg ÷ 7日 = 1100
+      out.push(r);});
+    return out;},
+  toggleWeekExcl(k){if(!DB.weekExcl)DB.weekExcl={};if(DB.weekExcl[k])delete DB.weekExcl[k];else DB.weekExcl[k]=true;persist();this.renderWeekly();},
+  renderWeekly(){const tbl=document.getElementById("weekTbl");if(!tbl)return;const rows=this.weeklyStats().reverse();const note=document.getElementById("weekNote");
+    if(!rows.length){tbl.innerHTML='<tr><td class="empty" style="text-align:center;">栄養データがまだありません。取込タブで Health Auto Export の JSON を取り込んでください。</td></tr>';note.textContent="";return;}
+    const f1=v=>v==null?"—":v.toFixed(1);const f0=v=>v==null?"—":Math.round(v).toLocaleString();
+    tbl.innerHTML=`<tr><th>週(月〜)</th><th>平均kcal</th><th>平均歩数</th><th>朝体重<br>週平均</th><th>前週差</th><th>推定TDEE</th><th>有効<br>日数</th><th>除外</th></tr>`+rows.map(r=>{
+      const cls=r.excluded?"exw":(r.ref?"ref":"");
+      return `<tr class="${cls}"><td>${r.key.slice(5).replace("-","/")}〜${r.end.slice(5).replace("-","/")}</td><td>${f0(r.avgKcal)}</td><td>${f0(r.avgSteps)}</td><td>${f1(r.avgWt)}${r.nWt?`<span style="font-size:9px;color:var(--mute)"> (${r.nWt})</span>`:""}</td><td>${r.diff==null?"—":(r.diff>0?"+":"")+r.diff.toFixed(2)}</td><td class="tdee">${r.excluded?"除外":r.tdee==null?"—":r.tdee.toLocaleString()}${!r.excluded&&r.tdee!=null&&r.ref?'<span style="font-size:9px;font-weight:700;"> 参考</span>':""}</td><td>${r.days}${r.ref&&!r.excluded?'<span style="font-size:9px;"> /5未満</span>':""}</td><td><button class="xb${r.excluded?" on":""}" onclick="app.toggleWeekExcl('${r.key}')">${r.excluded?"除外中":"除外"}</button></td></tr>`;}).join("");
+    const valid=rows.filter(r=>!r.excluded&&!r.ref&&r.tdee!=null);
+    note.innerHTML=valid.length?`有効な週（除外なし・5日以上・前週体重あり）${valid.length}週の推定TDEE平均：<b>${Math.round(valid.reduce((a,r)=>a+r.tdee,0)/valid.length).toLocaleString()} kcal</b>${valid.length<4?"（まだ収束前。3〜4週以降の値で判断）":""}`:"推定TDEEが出るのは、前週にも朝体重があり、記録漏れでない日が5日以上ある週からです。";},
   // ---- graph ----
   renderGraph(){const sel=document.getElementById("graphSel");
     if(sel.options.length===0){
@@ -1443,15 +1613,24 @@ const app={
         ["── 安全性 ──",[["Ht","ヘマトクリット"],["Hb","血色素"],["HDL","HDL"],["LDL","LDL"],["TG","中性脂肪"],["CK","CK"],["eGFR","eGFR"],["Cr","クレアチニン"],["cysC","シスタチンC"],["BUN","尿素窒素"],["Plt","血小板"],["WBC","白血球"]]],
         ["── 実測サイズ ──",[["ib_waist","📏腹囲"],["ib_chest","胸囲"],["ib_shoulder","肩周り"],["ib_armL","上腕(左)"],["ib_armR","上腕(右)"],["ib_thigh","太もも"],["ib_neck","首"]]],
         ["── InBody ──",[["ib_wt","体重"],["ib_smm","骨格筋量"],["ib_mm","筋肉量"],["ib_fat","体脂肪量"],["ib_pbf","体脂肪率"],["ib_tbw","体水分量"]]],
+        ["── 栄養・TDEE ──",[["nu_wk_kcal","🍽 週平均kcal"],["nu_wk_wt","⚖ 朝体重 週平均"],["nu_tdee","🔥 推定TDEE(週)"],["nu_kcal","kcal(日次)"],["nu_fiber","食物繊維(日次)"],["nu_steps","歩数(日次)"],["nu_amWt","朝体重(日次)"],["nu_p","タンパク質(日次)"],["nu_f","脂質(日次)"],["nu_c","炭水化物(日次)"],["nu_salt","食塩(日次)"]]],
         ["── 定刻 ──",[["punct_week","⏰ 定刻達成率(週次)"],["punct_day","⏰ 定刻達成率(日次)"]]],
         ["── トレMAX ──",MENU.flatMap(m=>m.ex).concat(Object.values(DB.customEx||{}).flat()).filter((e,i,a)=>a.findIndex(x=>x.n===e.n)===i).map(e=>["tr_"+e.n,e.n.replace("★","")])]];
       groups.forEach(([label,items])=>{const og=document.createElement("optgroup");og.label=label;
         items.forEach(([v,t])=>{const o=document.createElement("option");o.value=v;o.textContent=t;og.appendChild(o);});sel.appendChild(og);});
       sel.value="tT";sel.onchange=()=>this.draw(sel.value);}
-    this.draw(sel.value||"tT");},
+    this.draw(sel.value||"tT");this.renderWeekly();},
   draw(key){
-    let pts=[],range=null,alert=null,unit="",title="";
-    if(key==="punct_day"){unit="%";title="定刻達成率(日次)";range=[0,100];
+    let pts=[],range=null,alert=null,unit="",title="",alertLabel="閾値",extraNote="";
+    if(key.startsWith("nu_")){const g=this.nutriGoal();const f=key.slice(3);
+      if(f==="wk_kcal"||f==="wk_wt"||f==="tdee"){const ws=this.weeklyStats();
+        ws.forEach(w=>{const v=f==="wk_kcal"?w.avgKcal:f==="wk_wt"?w.avgWt:w.tdee;if(v!=null)pts.push({date:w.key,v:Math.round(v*10)/10,noise:w.excluded||w.ref});});
+        unit=f==="wk_wt"?"kg":"kcal";title=f==="wk_kcal"?"週平均kcal(週の月曜)":f==="wk_wt"?"朝体重 週平均":"推定TDEE(週)";if(f==="wk_kcal"){alert=g.kcal;alertLabel="目標";}
+        extraNote="点線＝除外週または有効5日未満の参考値";}
+      else{const def=NUTRI_FIELDS.find(x=>x.k===f);DB.nutrition.forEach(x=>{if(x[f]!=null)pts.push({date:x.date,v:x[f],noise:!!x.excluded});});
+        unit=def?def.u:"";title=def?def.n+"(日次)":f;if(g[f]!=null){alert=g[f];alertLabel="目標";}if(f==="fiber"){alert=20;alertLabel="目標20〜25";}
+        extraNote="点線＝記録漏れ";}}
+    else if(key==="punct_day"){unit="%";title="定刻達成率(日次)";range=[0,100];
       Object.keys(DB.punct||{}).sort().forEach(d=>{const p=DB.punct[d];const t=p.ok+p.late;if(t)pts.push({date:d,v:Math.round(p.ok/t*100)});});}
     else if(key==="punct_week"){unit="%";title="定刻達成率(週次)";range=[0,100];
       const wk={};Object.keys(DB.punct||{}).forEach(d=>{const p=DB.punct[d];const t=p.ok+p.late;if(!t)return;
@@ -1478,7 +1657,9 @@ const app={
     let g="";
     const isPunct=(key==="punct_week"||key==="punct_day");
     if(range&&!isPunct){const yH=Y(range[1]),yL=Y(range[0]);g+=`<rect x="${pl}" y="${yH}" width="${W-pl-pr}" height="${yL-yH}" fill="#dbe5da" opacity="0.5"/>`;}
-    if(alert){const ya=Y(alert);g+=`<line x1="${pl}" y1="${ya}" x2="${W-pr}" y2="${ya}" stroke="#c0392b" stroke-width="1.2" stroke-dasharray="5 3" opacity="0.7"/><text x="${W-pr-2}" y="${ya-4}" text-anchor="end" font-size="9" fill="#c0392b" font-weight="700">閾値${alert}</text>`;}
+    if(alert){const ya=Y(alert);g+=`<line x1="${pl}" y1="${ya}" x2="${W-pr}" y2="${ya}" stroke="#c0392b" stroke-width="1.2" stroke-dasharray="5 3" opacity="0.7"/><text x="${W-pr-2}" y="${ya-4}" text-anchor="end" font-size="9" fill="#c0392b" font-weight="700">${alertLabel}${alert}</text>`;}
+    // TG：11/18以降は「水曜朝・空腹」採血に条件変更（それ以前と直接比較不可）→ 境界線
+    if(key==="TG"){const bi=pts.findIndex(p=>p.date>="2026-11-18");if(bi>0){const bx=(X(bi-1)+X(bi))/2;g+=`<line x1="${bx}" y1="${pt}" x2="${bx}" y2="${H-pb}" stroke="#2f7d8c" stroke-width="1.2" stroke-dasharray="4 3"/><text x="${bx+3}" y="${pt+10}" font-size="8.5" fill="#2f7d8c" font-weight="700">11/18〜 朝空腹</text>`;}}
     for(let k=0;k<=3;k++){const yy=pt+(H-pt-pb)*k/3,val=vmax-(vmax-vmin)*k/3;
       g+=`<line x1="${pl}" y1="${yy}" x2="${W-pr}" y2="${yy}" stroke="#f0ede5"/><text x="${pl-6}" y="${yy+4}" text-anchor="end" font-size="9" fill="#9aa0a8">${val>=1000?Math.round(val):val.toFixed(val<10?1:0)}</text>`;}
     // solid path (skip noise)
@@ -1497,7 +1678,9 @@ const app={
     svg.innerHTML=g;
     const f=pts.filter(p=>!p.noise);
     if(f.length>1){const d=(f[f.length-1].v-f[0].v).toFixed(1);note.textContent=`${f[0].v} → ${f[f.length-1].v} ${unit}（${d>=0?"+":""}${d}）${key==="Ht"?"｜ 50%で瀉血・飲水を":""}${key.startsWith("tr_")?"｜ 右肩上がりなら過負荷OK":""}`;}
-    else note.textContent="";},
+    else note.textContent="";
+    if(key==="TG")note.textContent+=(note.textContent?"｜ ":"")+"※ 2026-11-18以降は水曜朝・空腹で採血。それ以前（食後含む）の値とは直接比較できません";
+    if(extraNote)note.textContent+=(note.textContent?"｜ ":"")+extraNote;},
   // ---- cond ----
   renderCond(){/* 体調タブは削除済み（no-op） */return;
     const c=DB.cond[todayStr()]||{};
@@ -1512,7 +1695,7 @@ document.querySelectorAll(".tabs button").forEach(b=>{b.onclick=()=>{
   document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("on"));b.classList.add("on");
   document.querySelectorAll(".view").forEach(v=>v.classList.remove("on"));document.getElementById("view-"+b.dataset.tab).classList.add("on");
   if(b.dataset.tab==="labs")app.renderLabHist();if(b.dataset.tab==="med"){app.renderMedHist();app.renderOngoing();}
-  if(b.dataset.tab==="inbody")app.renderIBHist();if(b.dataset.tab==="graph")app.renderGraph();if(b.dataset.tab==="hist")app.renderHistory();if(b.dataset.tab==="noalc")app.renderNoAlc();};});
+  if(b.dataset.tab==="inbody")app.renderIBHist();if(b.dataset.tab==="nutri")app.renderNutri();if(b.dataset.tab==="graph")app.renderGraph();if(b.dataset.tab==="hist")app.renderHistory();if(b.dataset.tab==="noalc")app.renderNoAlc();};});
 // ============ (音声/AI機能は無効化: 手入力＋Claudeチャットでの相談に統一) ============
 app.buildMedText=function(scope){
   const wd=["日","月","火","水","木","金","土"];
