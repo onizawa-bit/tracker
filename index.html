@@ -286,6 +286,13 @@
   .wk tr.ref td.tdee,.wk tr.exw td.tdee{color:inherit;font-weight:700;}
   .wk .xb{background:none;border:1px solid var(--line);border-radius:6px;padding:2px 6px;font-size:10px;font-family:inherit;cursor:pointer;color:var(--mute);}
   .wk .xb.on{background:#fde8e4;border-color:#f0c0b8;color:var(--down);}
+  .sync-st{font-size:11.5px;font-weight:700;color:var(--care);margin-top:8px;line-height:1.5;}
+  .sync-st.err{color:var(--warn);}
+  .sync-st.ok{color:var(--up);}
+  .sync-in{width:100%;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box;}
+  .gas{background:#1f2d3d;color:#e8eef5;font-size:10px;line-height:1.45;padding:10px;border-radius:8px;overflow-x:auto;white-space:pre;font-family:Menlo,Consolas,monospace;max-height:260px;}
+  .steps{font-size:12px;line-height:1.6;padding-left:18px;margin:6px 0;}
+  .steps li{margin-bottom:4px;}
   .filebtn{display:block;width:100%;text-align:center;background:var(--navy);color:#fff;border-radius:10px;padding:12px;font-size:14px;font-weight:800;cursor:pointer;}
   .filebtn input{display:none;}
 </style>
@@ -402,7 +409,28 @@
 
   <!-- IMPORT -->
   <div class="view" id="view-import">
-    <div class="sec-t">Health Auto Export から取り込み（栄養・歩数・朝体重）</div>
+    <div class="sec-t">🔄 自動同期（Google Drive → アプリ）</div>
+    <div class="hint">Health Auto Export が Google Drive「ヘルスケア同期」に置いたファイルを、<b>アプリを開くたびに自動で取り込みます</b>（1時間に1回まで。「今すぐ同期」でいつでも）。ご自身の Google アカウントで動く小さな Apps Script を1回だけ用意します。手順は下の「設定方法」。</div>
+    <div class="card">
+      <div class="field"><label>Apps Script ウェブアプリの URL</label><input class="sync-in" id="syncUrl" inputmode="url" autocapitalize="off" autocorrect="off" placeholder="https://script.google.com/macros/s/…/exec"></div>
+      <div class="field"><label>合言葉（Apps Script の KEY と同じ）</label><input class="sync-in" id="syncKey" type="password" autocapitalize="off" placeholder="例：anzu2026"></div>
+      <label class="hint" style="display:flex;gap:6px;align-items:center;cursor:pointer;"><input type="checkbox" id="syncAuto" checked>アプリを開いたとき自動で同期する</label>
+      <div style="display:flex;gap:8px;"><button class="btn ghost" onclick="app.saveSync()">設定を保存</button><button class="btn primary" onclick="app.syncNow()">🔄 今すぐ同期</button></div>
+      <div class="sync-st" id="syncStatus"></div>
+      <details><summary>設定方法（初回のみ・5分ほど）</summary>
+        <ol class="steps">
+          <li>パソコンかスマホのブラウザで <b>script.google.com</b> を開き（Google Drive と同じアカウント）、「新しいプロジェクト」。</li>
+          <li>エディタの中身を全部消して、下のコードを貼り付け（「コードをコピー」）。左上の名前は「トラッカー同期」など。</li>
+          <li>左の歯車「プロジェクトの設定」→ 一番下「スクリプト プロパティ」→「プロパティを追加」。プロパティ <b>KEY</b>、値は好きな合言葉（上の欄と同じものを入れる）→ 保存。</li>
+          <li>右上「デプロイ」→「新しいデプロイ」→ 歯車で種類「<b>ウェブアプリ</b>」→ 実行ユーザー「<b>自分</b>」、アクセスできるユーザー「<b>全員</b>」→ デプロイ。初回は権限の承認（Drive の読み取り）を許可。</li>
+          <li>表示された「ウェブアプリ URL」（…/exec で終わる）をコピーして上の欄に貼り、合言葉も入れて「設定を保存」→「今すぐ同期」。</li>
+        </ol>
+        <div class="hint">※ URL と合言葉はこの端末にだけ保存され、バックアップには含めません。コードを直した後は「デプロイを管理」→ 鉛筆 → バージョン「新バージョン」→ デプロイ、で URL は変わりません。</div>
+        <button class="btn ghost" style="margin:4px 0 8px;" onclick="app.copyGas()">📋 コードをコピー</button>
+        <pre class="gas" id="gasCode"></pre>
+      </details>
+    </div>
+    <div class="sec-t" style="margin-top:18px;">Health Auto Export から取り込み（手動）</div>
     <div class="hint">iPhoneのHealth Auto Exportが Google Drive「ヘルスケア同期」に出す <b>HealthAutoExport-日付.json</b> をそのまま読みます。「ファイルを選ぶ」で複数日まとめて選べます（Files アプリ → Google Drive）。中身を下の欄に貼り付けても同じです。</div>
     <div class="card">
       <label class="filebtn">📂 JSONファイルを選んで取り込む<input type="file" id="haeFile" accept=".json,application/json" multiple onchange="app.importHAEFiles(this.files)"></label>
@@ -579,7 +607,53 @@ const NUTRI_GOAL={kcal:2200,p:140,f:50,c:298};
 const NUTRI_FIELDS=[{k:"kcal",n:"kcal",u:"kcal",st:"1"},{k:"p",n:"P",u:"g",st:"0.1"},{k:"f",n:"F",u:"g",st:"0.1"},{k:"c",n:"C",u:"g",st:"0.1"},{k:"fiber",n:"食物繊維",u:"g",st:"0.1"},{k:"salt",n:"食塩",u:"g",st:"0.1"},{k:"steps",n:"歩数",u:"歩",st:"1"},{k:"amWt",n:"朝体重",u:"kg",st:"0.1"}];
 // Health Auto Export の metric name → 内部キー（他の項目は無視）
 const HAE_MAP={dietary_energy:"kcal",protein:"p",total_fat:"f",carbohydrates:"c",fiber:"fiber",sodium:"sodium",step_count:"steps",weight_body_mass:"weight"};
-const NUTRI_CALC_FROM="2026-11-16"; // これより前の日は初回取込時に「記録漏れ」扱い（過去のカロミル記録は網羅性が低いため）
+const NUTRI_CALC_FROM="2026-11-16";
+const SYNC_KEY="anzu_tracker_sync"; // 自動同期の設定（URL・合言葉・最終同期）。DB とは別に保存し、バックアップには含めない
+// Google Apps Script に貼るコード（Drive「ヘルスケア同期」の HealthAutoExport-*.json を読み、必要な項目だけ返す）
+const GAS_CODE=String.raw`// あんずトラッカー 自動同期（Google Apps Script）
+// Drive の「ヘルスケア同期」フォルダにある HealthAutoExport-YYYY-MM-DD.json を読み、
+// 栄養・歩数（日合計）・体重だけを返します。合言葉はスクリプト プロパティ KEY に設定。
+const FOLDER_NAME = "ヘルスケア同期";
+const KEEP = ["dietary_energy","protein","total_fat","carbohydrates","fiber","sodium","step_count","weight_body_mass"];
+
+function doGet(e) {
+  const p = (e && e.parameter) || {};
+  const key = PropertiesService.getScriptProperties().getProperty("KEY");
+  if (!key || p.key !== key) return out_({error: "unauthorized"});
+  const it = DriveApp.getFoldersByName(FOLDER_NAME);
+  if (!it.hasNext()) return out_({error: "folder not found: " + FOLDER_NAME});
+  const files = it.next().getFiles(); const texts = [];
+  while (files.hasNext()) {
+    const f = files.next(); const m = f.getName().match(/(\d{4}-\d{2}-\d{2})\.json$/i);
+    if (!m || (p.since && m[1] < p.since)) continue;
+    texts.push({date: m[1], text: f.getBlob().getDataAsString("UTF-8")});
+  }
+  return out_(build_(texts));
+}
+
+function build_(texts) {
+  const metrics = {}, files = [];
+  texts.forEach(t => {
+    let j; try { j = JSON.parse(t.text); } catch (err) { return; }
+    const ms = (j && j.data && j.data.metrics) || []; files.push(t.date);
+    ms.forEach(mt => {
+      if (KEEP.indexOf(mt.name) < 0 || !mt.data) return;
+      const k = metrics[mt.name] || (metrics[mt.name] = {name: mt.name, units: mt.units, data: []});
+      if (mt.name === "step_count") {
+        const byDay = {};
+        mt.data.forEach(d => { const day = String(d.date).slice(0, 10); byDay[day] = (byDay[day] || 0) + (Number(d.qty) || 0); });
+        Object.keys(byDay).forEach(day => k.data.push({date: day + " 00:00:00 +0900", qty: Math.round(byDay[day]), source: "sum"}));
+      } else {
+        mt.data.forEach(d => k.data.push({date: d.date, qty: d.qty, source: d.source}));
+      }
+    });
+  });
+  return {data: {metrics: Object.keys(metrics).map(n => metrics[n])}, files: files.sort(), generated: new Date().toISOString()};
+}
+
+function out_(o) {
+  return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
+}`; // これより前の日は初回取込時に「記録漏れ」扱い（過去のカロミル記録は網羅性が低いため）
 function load(){try{return JSON.parse(localStorage.getItem(KEY));}catch(e){return null;}}
 function persist(){localStorage.setItem(KEY,JSON.stringify(DB));}
 let DB=load();
@@ -1088,7 +1162,7 @@ document.getElementById("today").textContent=jpDate();
 const app={
   partIdx:0,
   init(){this.partIdx=0;
-    this.renderParts();this.renderEx();this.renderTodayRecord();this.renderLabInputs();this.renderMedBtns();this.renderIBInputs();this.renderMeasureInputs();this.renderNutriInputs();this.renderPunct();},
+    this.renderParts();this.renderEx();this.renderTodayRecord();this.renderLabInputs();this.renderMedBtns();this.renderIBInputs();this.renderMeasureInputs();this.renderNutriInputs();this.renderPunct();this.renderSync();this.autoSync();},
   toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1600);},
   // ---- training (part-based, one session per date) ----
   renderParts(){const el=document.getElementById("partSel");el.innerHTML="";
@@ -1583,6 +1657,36 @@ const app={
         <div class="kc">${x.kcal!=null?x.kcal+'<small>kcal</small>'+dif(x.kcal,g.kcal,"kcal"):'<small style="color:var(--mute)">栄養なし</small>'}</div></div>
         <div class="nu-sub">${sub.join("")}</div>
         <div class="nu-act"><label><input type="checkbox" ${x.excluded?"checked":""} onchange="app.toggleNutriExcl('${x.date}')">記録漏れ（週平均から除外）</label><span class="sp"></span><button onclick="app.editNutri('${x.date}')">編集</button><button onclick="app.delNutri('${x.date}')">削除</button></div></div>`;}).join("");},
+  // ---- auto sync (Google Drive → Apps Script → アプリ) ----
+  syncCfg(){try{return JSON.parse(localStorage.getItem(SYNC_KEY))||{};}catch(e){return {};}},
+  saveSyncCfg(c){localStorage.setItem(SYNC_KEY,JSON.stringify(c));},
+  renderSync(){const c=this.syncCfg();const u=document.getElementById("syncUrl");if(!u)return;
+    u.value=c.url||"";document.getElementById("syncKey").value=c.key||"";document.getElementById("syncAuto").checked=c.auto!==false;
+    const g=document.getElementById("gasCode");if(g&&!g.textContent)g.textContent=GAS_CODE;
+    this.syncStatus(c.lastMsg||(c.url?"未同期":"未設定（下の「設定方法」を参照）"),c.lastErr?"err":(c.last?"ok":""));},
+  syncStatus(msg,cls){const el=document.getElementById("syncStatus");if(!el)return;el.textContent=msg;el.className="sync-st"+(cls?" "+cls:"");},
+  saveSync(){const url=document.getElementById("syncUrl").value.trim(),key=document.getElementById("syncKey").value.trim(),auto=document.getElementById("syncAuto").checked;
+    if(url&&!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(url)){this.toast("URLは https://script.google.com/macros/s/…/exec の形です");return;}
+    const c=this.syncCfg();Object.assign(c,{url,key,auto});if(!url){delete c.last;delete c.lastMsg;delete c.lastErr;}this.saveSyncCfg(c);this.renderSync();this.toast(url?"自動同期の設定を保存 ✓":"自動同期を解除しました");},
+  async copyGas(){try{await navigator.clipboard.writeText(GAS_CODE);this.toast("コードをコピーしました ✓ Apps Script に貼り付けてください");}catch(e){const g=document.getElementById("gasCode");const r=document.createRange();r.selectNodeContents(g);const sel=getSelection();sel.removeAllRanges();sel.addRange(r);this.toast("コードを選択しました。長押しでコピーを");}},
+  // since＝手元の最新日の2日前から（当日ファイルの作り直しに備えて少し重ねる）。初回は全部
+  syncSince(){const ds=DB.nutrition.map(x=>x.date).filter(d=>d<=todayStr()).sort();return ds.length?this.addDays(ds[ds.length-1],-2):"";},
+  async syncNow(silent){const c=this.syncCfg();if(!c.url||!c.key){if(!silent){this.syncStatus("URL と合言葉を入れて「設定を保存」してください","err");this.toast("自動同期が未設定です");}return;}
+    if(this._syncing)return;this._syncing=true;this.syncStatus("同期中…");
+    const since=this.syncSince();const q=c.url+"?key="+encodeURIComponent(c.key)+(since?"&since="+since:"")+"&_="+Date.now();
+    let msg="",err=false,r=null;
+    try{const res=await fetch(q,{redirect:"follow",cache:"no-store"});const txt=await res.text();let o;
+      try{o=JSON.parse(txt);}catch(e){throw new Error(res.ok?"返ってきた内容がJSONではありません（デプロイのアクセスを「全員」にしているか確認）":"HTTP "+res.status);}
+      if(o.error)throw new Error(o.error==="unauthorized"?"合言葉が一致しません（KEY を確認）":o.error);
+      if(!o.data||!Array.isArray(o.data.metrics))throw new Error("形式が違います");
+      r=this.importNutrition(this.parseHAE(o));persist();
+      const files=(o.files||[]).length;const last=files?o.files[o.files.length-1].slice(5):"";
+      msg=`同期 ✓ ${new Date().toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}　ファイル ${files}件${last?"（〜"+last+"）":""} ／ 栄養 ${r.kcal}日・歩数 ${r.steps}日・朝体重 ${r.amWt}日`;}
+    catch(e){err=true;msg="同期エラー："+(e&&e.message?e.message:String(e))+(/Failed to fetch|Load failed|NetworkError/.test(String(e&&e.message))?"（通信できません。URL・ネット接続・アクセス「全員」を確認）":"");}
+    this._syncing=false;Object.assign(c,{last:Date.now(),lastMsg:msg,lastErr:err});this.saveSyncCfg(c);this.syncStatus(msg,err?"err":"ok");
+    if(!silent||err)this.toast(err?"同期に失敗しました":"自動同期 ✓");else if(r&&r.days)this.toast(`自動同期 ✓ ${r.days}日分を更新`);
+    if(document.getElementById("view-nutri").classList.contains("on"))this.renderNutri();if(document.getElementById("view-graph").classList.contains("on"))this.renderWeekly();return r;},
+  autoSync(){const c=this.syncCfg();if(!c.url||!c.key||c.auto===false)return;if(c.last&&Date.now()-c.last<3600*1000&&!c.lastErr)return;this.syncNow(true);},
   // ---- weekly summary / TDEE ----
   weekKey(d){const dt=new Date(d+"T00:00:00");const day=(dt.getDay()+6)%7;dt.setDate(dt.getDate()-day);return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");},
   addDays(d,n){const dt=new Date(d+"T00:00:00");dt.setDate(dt.getDate()+n);return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");},
