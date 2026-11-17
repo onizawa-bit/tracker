@@ -35,6 +35,16 @@
   .btn.ghost{background:#eee9df;color:var(--ink);}
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy-d);color:#fff;padding:10px 20px;border-radius:24px;font-size:13px;font-weight:700;z-index:40;opacity:0;transition:opacity .3s;pointer-events:none;}
   .toast.show{opacity:1;}
+  /* AI advice popup */
+  .aipop{position:fixed;left:12px;right:12px;bottom:70px;max-width:600px;margin:0 auto;background:#fff;border:1.5px solid var(--navy);border-left:6px solid var(--orange);border-radius:14px;padding:11px 14px 11px 12px;box-shadow:0 8px 24px rgba(15,36,64,.22);z-index:45;display:none;}
+  .aipop.show{display:block;animation:aiin .25s ease-out;}
+  @keyframes aiin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .aipop .ah{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:10.5px;font-weight:800;color:var(--navy);margin-bottom:4px;}
+  .aipop .ah .x{background:none;border:none;font-size:18px;color:var(--mute);cursor:pointer;padding:0 2px;line-height:1;}
+  .aipop .at{font-size:14px;font-weight:700;line-height:1.55;color:var(--ink);}
+  .aipop.err .at{color:var(--warn);font-size:12.5px;font-weight:600;}
+  .aipop.busy .at{color:var(--mute);font-weight:600;}
+  .aibtn{background:none;border:1px solid var(--line);border-radius:7px;font-size:13px;padding:1px 6px;cursor:pointer;margin-left:6px;vertical-align:middle;line-height:1.4;}
 
   /* punctuality tracker */
   .pt-box{background:linear-gradient(135deg,#1a3a5c,#2f5a82);color:#fff;border-radius:14px;padding:14px 16px;margin-bottom:16px;}
@@ -448,6 +458,14 @@
         <pre class="gas" id="gasCode"></pre>
       </details>
     </div>
+    <div class="sec-t" style="margin-top:18px;">🤖 AIアドバイス（記録のたびに一言）</div>
+    <div class="hint">トレタブでセットを記録するたびに、その種目へのアドバイスを1文ポップアップで表示します。Claude API の従量課金（1回あたり1〜2円程度）。APIキーはこの端末にだけ保存され、バックアップには含めません。各種目の 💬 からも手動で呼べます。</div>
+    <div class="card">
+      <div class="field"><label>Claude API キー（platform.claude.com → API keys）</label><input class="sync-in" id="aiKey" type="password" autocapitalize="off" autocorrect="off" placeholder="sk-ant-…"></div>
+      <label class="hint" style="display:flex;gap:6px;align-items:center;cursor:pointer;"><input type="checkbox" id="aiOn" checked>記録のたびに自動で表示する（OFFでも 💬 で手動呼び出し可）</label>
+      <div style="display:flex;gap:8px;"><button class="btn ghost" onclick="app.saveAi()">保存</button><button class="btn primary" onclick="app.aiTest()">🤖 テスト</button></div>
+      <div class="sync-st" id="aiStatus"></div>
+    </div>
     <div class="sec-t" style="margin-top:18px;">Health Auto Export から取り込み（手動）</div>
     <div class="hint">iPhoneのHealth Auto Exportが Google Drive「ヘルスケア同期」に出す <b>HealthAutoExport-日付.json</b> をそのまま読みます。「ファイルを選ぶ」で複数日まとめて選べます（Files アプリ → Google Drive）。中身を下の欄に貼り付けても同じです。</div>
     <div class="card">
@@ -534,6 +552,7 @@
 
   <!-- COND removed -->
 </div>
+<div class="aipop" id="aiPop" onclick="app.hideAiPop()"><div class="ah"><span id="aiPopHd">🤖 AIアドバイス</span><button class="x" onclick="event.stopPropagation();app.hideAiPop()">×</button></div><div class="at" id="aiPopTx"></div></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -632,7 +651,17 @@ const NUTRI_FIELDS=[{k:"kcal",n:"kcal",u:"kcal",st:"1"},{k:"p",n:"P",u:"g",st:"0
 // Health Auto Export の metric name → 内部キー（他の項目は無視）
 const HAE_MAP={dietary_energy:"kcal",protein:"p",total_fat:"f",carbohydrates:"c",fiber:"fiber",sodium:"sodium",step_count:"steps",weight_body_mass:"weight"};
 const NUTRI_CALC_FROM="2026-11-16";
-const SYNC_KEY="anzu_tracker_sync"; // 自動同期の設定（URL・合言葉・最終同期）。DB とは別に保存し、バックアップには含めない
+const SYNC_KEY="anzu_tracker_sync";
+const AI_KEY="anzu_tracker_ai"; // AIアドバイス設定（APIキー・ON/OFF）。DB とは別に保存し、バックアップには含めない
+const AI_MODEL="claude-opus-5-5";
+// 切り口をランダムに変えて、毎回違うアドバイスにする
+const AI_ANGLES=["次セットの重量・回数の判断","フォームの要点を1つ","テンポ（下ろす速さ・トップで止める）","セット間の休憩時間","左肩・腰・肘を守る注意点","次回セッションの目標設定","今日の栄養・回復とのつながり","集中を切らさない一言"];
+const AI_SYSTEM=`あなたは日本語で答える経験豊富なパーソナルトレーナーです。相手はテストステロン補充療法中の成人男性で、フィジーク大会（2026-11-14）を終えた直後の増量期（12月〜2月、目標 +0.2〜0.3kg/週）。
+最優先は背中と肩（側部・後部・上背）の発達。胸・脚・腕は維持量。
+制約：左肩は保護（肩のプレス系は禁止、片腕・低速・可動域を欲張らない）、腰は保護（デッドリフトは RDL で代替、腰中立）、肘は保護（高重量カールやスカルクラッシャーは避ける）。
+進め方：ダブルプログレッション。全セットで回数上限に RIR1〜2 で届いたら次回 +2.5kg（ダンベルは片手 +2.5kg、マシンは1枚）。多関節は休憩2分、単関節は60〜90秒。
+回答ルール：1文だけ、全角60字以内。具体的な数字や動作に落とす。前置き・挨拶・絵文字・箇条書きなし。与えられた記録だけから判断し、無い情報は推測で断定しない。
+RIR0 が続く、前回より大きく落ちている、痛みのメモがある等の危険信号があれば、切り口の希望より優先して指摘する。`; // 自動同期の設定（URL・合言葉・最終同期）。DB とは別に保存し、バックアップには含めない
 // Google Apps Script に貼るコード（Drive「ヘルスケア同期」の HealthAutoExport-*.json を読み、必要な項目だけ返す）
 const GAS_CODE=String.raw`// あんずトラッカー 自動同期（Google Apps Script）
 // Drive の「ヘルスケア同期」フォルダにある HealthAutoExport-YYYY-MM-DD.json を読み、
@@ -1191,7 +1220,7 @@ document.getElementById("today").textContent=jpDate();
 const app={
   partIdx:0,
   init(){this.partIdx=0;
-    this.renderParts();this.renderEx();this.renderTodayRecord();this.renderLabInputs();this.renderMedBtns();this.renderIBInputs();this.renderMeasureInputs();this.renderNutriInputs();this.renderPunct();this.renderSync();this.autoSync();},
+    this.renderParts();this.renderEx();this.renderTodayRecord();this.renderLabInputs();this.renderMedBtns();this.renderIBInputs();this.renderMeasureInputs();this.renderNutriInputs();this.renderPunct();this.renderSync();this.autoSync();this.renderAi();},
   toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1600);},
   // ---- training (part-based, one session per date) ----
   renderParts(){const el=document.getElementById("partSel");el.innerHTML="";
@@ -1254,7 +1283,7 @@ const app={
         }).join("")+'</div>';
       }
       const gymSel=GYMS.map(g=>`<button class="gymbtn" id="gym-${ei}-${g.k}" onclick="app.pickGym(${ei},'${g.k}')">${g.n}</button>`).join("");
-      card.innerHTML=`<div class="ex-h"><div class="ex-num">${ei+1}</div><div style="flex:1"><div class="ex-name"><span class="exname-tap" onclick="app.showHistory('${ex.n.replace(/'/g,"")}')">${ex.star&&!ex.n.startsWith("★")?'<span class="ex-star">★</span>':''}${ex.n}</span>${ex.alt?`<span class="offtag alt">${ex.alt}の代替</span>`:""}${isOff?`<span class="offtag ${ex.kind||"other"}">${ex.kind==="no"?"やらない":"別部位"}</span>`:""}${cust?' <span style="font-size:9px;color:var(--care);font-weight:700;">追加</span>':''}</div><div class="ex-target">${ex.t||""}</div></div>${delBtn}</div>${prev}
+      card.innerHTML=`<div class="ex-h"><div class="ex-num">${ei+1}</div><div style="flex:1"><div class="ex-name"><span class="exname-tap" onclick="app.showHistory('${ex.n.replace(/'/g,"")}')">${ex.star&&!ex.n.startsWith("★")?'<span class="ex-star">★</span>':''}${ex.n}</span>${ex.alt?`<span class="offtag alt">${ex.alt}の代替</span>`:""}<button class="aibtn" title="AIアドバイス" onclick="app.aiAdvise(${ei},true)">💬</button>${isOff?`<span class="offtag ${ex.kind||"other"}">${ex.kind==="no"?"やらない":"別部位"}</span>`:""}${cust?' <span style="font-size:9px;color:var(--care);font-weight:700;">追加</span>':''}</div><div class="ex-target">${ex.t||""}</div></div>${delBtn}</div>${prev}
         ${doneHtml}
         <div class="gymsel">${gymSel}</div>
         <input class="gymname-in" id="gymname-${ei}" placeholder="ジム名を入力" style="display:none;">
@@ -1323,7 +1352,8 @@ const app={
     e.sets.push(st);persist();
     document.getElementById("r-"+ei).value="";document.getElementById("rir-"+ei).value="";
     if(document.getElementById("memo-"+ei))document.getElementById("memo-"+ei).value="";
-    this.renderEx();this.renderTodayRecord();this.toast(ex.n.replace("★","")+" を記録 ✓");},
+    this.renderEx();this.renderTodayRecord();this.toast(ex.n.replace("★","")+" を記録 ✓");
+    this.aiAdvise(ei,false);},
   showHistory(exName){
     const days=DB.training.filter(s=>s.exercises.some(e=>e.name===exName&&e.sets.some(st=>st.w||st.r)))
       .sort((a,b)=>a.date<b.date?1:-1);
@@ -1695,6 +1725,60 @@ const app={
         <div class="kc">${x.kcal!=null?x.kcal+'<small>kcal</small>'+dif(x.kcal,g.kcal,"kcal"):'<small style="color:var(--mute)">栄養なし</small>'}</div></div>
         <div class="nu-sub">${sub.join("")}</div>
         <div class="nu-act"><label><input type="checkbox" ${x.excluded?"checked":""} onchange="app.toggleNutriExcl('${x.date}')">記録漏れ（週平均から除外）</label><span class="sp"></span><button onclick="app.editNutri('${x.date}')">編集</button><button onclick="app.delNutri('${x.date}')">削除</button></div></div>`;}).join("");},
+  // ---- AI advice (Claude API, 記録のたびに一言) ----
+  aiCfg(){try{return JSON.parse(localStorage.getItem(AI_KEY))||{};}catch(e){return {};}},
+  renderAi(){const c=this.aiCfg();const k=document.getElementById("aiKey");if(!k)return;k.value=c.key||"";document.getElementById("aiOn").checked=c.on!==false;
+    this.aiStatus(c.key?(c.lastMsg||"設定済み"):"未設定（APIキーを入れて保存）",c.lastErr?"err":(c.key?"ok":""));},
+  aiStatus(msg,cls){const el=document.getElementById("aiStatus");if(!el)return;el.textContent=msg;el.className="sync-st"+(cls?" "+cls:"");},
+  saveAi(){const key=document.getElementById("aiKey").value.trim(),on=document.getElementById("aiOn").checked;
+    if(key&&!/^sk-ant-/.test(key)){this.toast("APIキーは sk-ant- で始まります");return;}
+    const c=this.aiCfg();Object.assign(c,{key,on});delete c.lastMsg;delete c.lastErr;localStorage.setItem(AI_KEY,JSON.stringify(c));this.renderAi();this.toast(key?"AIアドバイスの設定を保存 ✓":"APIキーを削除しました");},
+  async aiTest(){const c=this.aiCfg();if(!c.key){this.aiStatus("APIキーを入れて保存してください","err");return;}
+    this.aiStatus("接続テスト中…");
+    try{const t=await this.aiCall("接続テストです。「準備OK、記録を始めましょう」とだけ日本語で短く返してください。");c.lastMsg="接続OK ✓ "+t.slice(0,40);c.lastErr=false;}
+    catch(e){c.lastMsg="接続エラー："+e.message;c.lastErr=true;}
+    localStorage.setItem(AI_KEY,JSON.stringify(c));this.aiStatus(c.lastMsg,c.lastErr?"err":"ok");},
+  showAiPop(hd,tx,cls){const p=document.getElementById("aiPop");document.getElementById("aiPopHd").textContent=hd;document.getElementById("aiPopTx").textContent=tx;p.className="aipop show"+(cls?" "+cls:"");
+    clearTimeout(this._aiHide);if(!cls||cls==="err")this._aiHide=setTimeout(()=>this.hideAiPop(),cls==="err"?8000:15000);},
+  hideAiPop(){document.getElementById("aiPop").className="aipop";clearTimeout(this._aiHide);},
+  // 直近の記録・栄養から、1種目分の状況をまとめる（この端末のデータのみ。コードに個人値は持たない）
+  aiContext(ex,partIdx){const M=MENU[partIdx];const wd=["日","月","火","水","木","金","土"];const today=todayStr();const d=new Date(today+"T00:00:00");
+    const fmt=st=>`${st.w||"?"}kg×${st.r||"?"}回${st.rir?" RIR"+st.rir:""}${st.memo?"（メモ:"+st.memo+"）":""}`;
+    const sess=this.todaySession(false);const todaySets=sess?((sess.exercises.find(e=>e.name===ex.n)||{}).sets||[]):[];
+    const rec=(M.rec||[]).find(r=>r.n.replace("★","")===ex.n.replace("★",""));
+    const hist=[];const dates=[...new Set(DB.training.map(x=>x.date))].sort().reverse();
+    for(const dt of dates){if(dt===today)continue;const e=(DB.training.find(x=>x.date===dt)||{exercises:[]}).exercises.find(x=>x.name===ex.n);if(e&&e.sets.length){hist.push(`${dt.slice(5)}: ${e.sets.map(fmt).join(", ")}`);if(hist.length>=3)break;}}
+    const bb=this.bestSince(ex.n);
+    const nu=[...DB.nutrition].filter(x=>x.date<=today).slice(-7);const kc=nu.filter(x=>x.kcal!=null&&!x.excluded).map(x=>x.kcal);const wt=[...nu].reverse().find(x=>x.amWt!=null);
+    const lines=[`日付: ${today}（${wd[d.getDay()]}）　部位: ${M.part}（${M.day||""}）`,
+      `種目: ${ex.n.replace("★","")}${ex.t?"（目安: "+ex.t+"）":""}${rec?"　今日の推奨: "+rec.s:""}${ex.alt?"　※"+ex.alt+"の代替として実施":""}`,
+      `今日のここまで（${todaySets.length}セット）: ${todaySets.length?todaySets.map((st,i)=>(i+1)+") "+fmt(st)).join("  "):"まだ記録なし"}`,
+      `過去の記録: ${hist.length?hist.join(" ／ "):"なし（初回）"}`,
+      `増量期の基準（11/16以降）の最高: ${bb&&bb.w?bb.w+"kg×"+bb.r+"回":"なし"}`,
+      `直近7日の栄養: ${kc.length?"平均 "+Math.round(kc.reduce((a,b)=>a+b,0)/kc.length)+"kcal（記録"+kc.length+"日）":"記録なし"}${wt?"　朝体重 "+wt.amWt+"kg（"+wt.date.slice(5)+"）":""}`,
+      `切り口の希望: ${AI_ANGLES[Math.floor(Math.random()*AI_ANGLES.length)]}（不自然なら無視して最も大事なことを）`];
+    return lines.join("\n")+"\n\nこの種目について、今いちばん役立つ一言アドバイスを1文で。";},
+  // 記録直後（auto）または 💬（manual）。失敗しても記録には影響させない
+  async aiAdvise(ei,manual){const c=this.aiCfg();const ex=this.partEx(this.partIdx)[ei];if(!ex)return;
+    if(!c.key){if(manual)this.showAiPop("🤖 AIアドバイス","APIキーが未設定です。取込タブの「AIアドバイス」で設定してください。","err");return;}
+    if(!manual&&c.on===false)return;
+    const name=ex.n.replace("★","");this.showAiPop("🤖 "+name,"考え中…","busy");
+    try{const txt=await this.aiCall(this.aiContext(ex,this.partIdx));this.showAiPop("🤖 "+name,txt||"（今回はアドバイスなし）");}
+    catch(e){this.showAiPop("🤖 "+name,"アドバイス取得エラー："+e.message,"err");}},
+  // Messages API をブラウザから直接呼ぶ（APIキーは端末内のみ）。1文なので非ストリーミング
+  async aiCall(userText){const c=this.aiCfg();if(!c.key)throw new Error("APIキー未設定");
+    const ctl=new AbortController();const tm=setTimeout(()=>ctl.abort(),30000);
+    let res,data;
+    try{res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",signal:ctl.signal,headers:{
+        "content-type":"application/json","x-api-key":c.key,"anthropic-version":"2026-10-21",
+        "anthropic-dangerous-direct-browser-access":"true","anthropic-beta":"server-side-fallback-2026-07-01"},
+      body:JSON.stringify({model:AI_MODEL,max_tokens:4000,output_config:{effort:"low"},fallbacks:"default",system:AI_SYSTEM,messages:[{role:"user",content:userText}]})});}
+    catch(e){clearTimeout(tm);throw new Error(e.name==="AbortError"?"応答がありません（タイムアウト）":"通信できません（ネット接続を確認）");}
+    clearTimeout(tm);
+    try{data=await res.json();}catch(e){throw new Error("HTTP "+res.status);}
+    if(!res.ok){const m=(data&&data.error&&data.error.message)||("HTTP "+res.status);throw new Error(res.status===401?"APIキーが無効です":res.status===429?"混み合っています。少し待って再試行":res.status===400?"リクエスト不正："+m:m);}
+    if(data.stop_reason==="refusal")return "";
+    return (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("").trim().replace(/^「|」$/g,"");},
   // ---- auto sync (Google Drive → Apps Script → アプリ) ----
   syncCfg(){try{return JSON.parse(localStorage.getItem(SYNC_KEY))||{};}catch(e){return {};}},
   saveSyncCfg(c){localStorage.setItem(SYNC_KEY,JSON.stringify(c));},
@@ -1703,8 +1787,11 @@ const app={
     const g=document.getElementById("gasCode");if(g&&!g.textContent)g.textContent=GAS_CODE;
     this.syncStatus(c.lastMsg||(c.url?"未同期":"未設定（下の「設定方法」を参照）"),c.lastErr?"err":(c.last?"ok":""));},
   syncStatus(msg,cls){const el=document.getElementById("syncStatus");if(!el)return;el.textContent=msg;el.className="sync-st"+(cls?" "+cls:"");},
-  saveSync(){const url=document.getElementById("syncUrl").value.trim(),key=document.getElementById("syncKey").value.trim(),auto=document.getElementById("syncAuto").checked;
-    if(url&&!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(url)){this.toast("URLは https://script.google.com/macros/s/…/exec の形です");return;}
+  saveSync(){let url=document.getElementById("syncUrl").value.trim().replace(/[?#].*$/,"").replace(/\/+$/,"");const key=document.getElementById("syncKey").value.trim(),auto=document.getElementById("syncAuto").checked;
+    // 個人: https://script.google.com/macros/s/<ID>/exec ／ Workspace: https://script.google.com/a/macros/<ドメイン>/s/<ID>/exec
+    if(url&&!/^https:\/\/script\.google\.com\/(macros|a\/macros\/[^/\s]+)\/s\/[^/\s]+\/exec$/.test(url)){this.syncStatus("URL の形が違います。Apps Script の「ウェブアプリ URL」（…/exec で終わるもの）を貼ってください。今の入力: "+url.slice(0,60)+(url.length>60?"…":""),"err");this.toast("URL を確認してください");return;}
+    if(url&&!key){this.syncStatus("合言葉も入れてください（Apps Script の KEY_DEFAULT と同じ）","err");this.toast("合言葉を入れてください");return;}
+    document.getElementById("syncUrl").value=url;
     const c=this.syncCfg();Object.assign(c,{url,key,auto});if(!url){delete c.last;delete c.lastMsg;delete c.lastErr;}this.saveSyncCfg(c);this.renderSync();this.toast(url?"自動同期の設定を保存 ✓":"自動同期を解除しました");},
   async copyGas(){try{await navigator.clipboard.writeText(GAS_CODE);this.toast("コードをコピーしました ✓ Apps Script に貼り付けてください");}catch(e){const g=document.getElementById("gasCode");const r=document.createRange();r.selectNodeContents(g);const sel=getSelection();sel.removeAllRanges();sel.addRange(r);this.toast("コードを選択しました。長押しでコピーを");}},
   // since＝手元の最新日の2日前から（当日ファイルの作り直しに備えて少し重ねる）。初回は全部
