@@ -1787,8 +1787,11 @@ const app={
     const g=document.getElementById("gasCode");if(g&&!g.textContent)g.textContent=GAS_CODE;
     this.syncStatus(c.lastMsg||(c.url?"未同期":"未設定（下の「設定方法」を参照）"),c.lastErr?"err":(c.last?"ok":""));},
   syncStatus(msg,cls){const el=document.getElementById("syncStatus");if(!el)return;el.textContent=msg;el.className="sync-st"+(cls?" "+cls:"");},
-  saveSync(){const url=document.getElementById("syncUrl").value.trim(),key=document.getElementById("syncKey").value.trim(),auto=document.getElementById("syncAuto").checked;
-    if(url&&!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(url)){this.toast("URLは https://script.google.com/macros/s/…/exec の形です");return;}
+  saveSync(){let url=document.getElementById("syncUrl").value.trim().replace(/[?#].*$/,"").replace(/\/+$/,"");const key=document.getElementById("syncKey").value.trim(),auto=document.getElementById("syncAuto").checked;
+    // 個人: https://script.google.com/macros/s/<ID>/exec ／ Workspace: https://script.google.com/a/macros/<ドメイン>/s/<ID>/exec
+    if(url&&!/^https:\/\/script\.google\.com\/(macros|a\/macros\/[^/\s]+)\/s\/[^/\s]+\/exec$/.test(url)){this.syncStatus("URL の形が違います。Apps Script の「ウェブアプリ URL」（…/exec で終わるもの）を貼ってください。今の入力: "+url.slice(0,60)+(url.length>60?"…":""),"err");this.toast("URL を確認してください");return;}
+    if(url&&!key){this.syncStatus("合言葉も入れてください（Apps Script の KEY_DEFAULT と同じ）","err");this.toast("合言葉を入れてください");return;}
+    document.getElementById("syncUrl").value=url;
     const c=this.syncCfg();Object.assign(c,{url,key,auto});if(!url){delete c.last;delete c.lastMsg;delete c.lastErr;}this.saveSyncCfg(c);this.renderSync();this.toast(url?"自動同期の設定を保存 ✓":"自動同期を解除しました");},
   async copyGas(){try{await navigator.clipboard.writeText(GAS_CODE);this.toast("コードをコピーしました ✓ Apps Script に貼り付けてください");}catch(e){const g=document.getElementById("gasCode");const r=document.createRange();r.selectNodeContents(g);const sel=getSelection();sel.removeAllRanges();sel.addRange(r);this.toast("コードを選択しました。長押しでコピーを");}},
   // since＝手元の最新日の2日前から（当日ファイルの作り直しに備えて少し重ねる）。初回は全部
