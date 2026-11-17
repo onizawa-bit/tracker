@@ -364,21 +364,6 @@
 
   <!-- TRAINING -->
   <div class="view on" id="view-log">
-    <div class="pt-box">
-      <div class="pt-head">⏰ 今日の定刻</div>
-      <div class="pt-rate" id="ptRate">—</div>
-      <div class="pt-sub" id="ptSub">まだ記録がありません</div>
-      <div class="pt-btns">
-        <button class="pt-b ok" onclick="app.addPunct(true)">定刻 ✅</button>
-        <button class="pt-b ng" onclick="app.addPunct(false)">遅刻 ❌</button>
-      </div>
-      <div class="pt-late">
-        <label>遅れ分数（任意・遅刻時）<input type="number" inputmode="numeric" id="ptLateMin" placeholder="分" min="0"></label>
-        <span class="pt-hint">「遅刻 ❌」を押す前に入力すると記録されます</span>
-      </div>
-      <div id="ptToday"></div>
-    </div>
-
     <div class="sec-t2">部位を選んで入力（複数選択OK・肩＋脚の日も可）<button class="circbtn" id="circuitBtn" onclick="app.toggleCircuit()">🔁 サーキット OFF</button></div>
     <div class="days" id="partSel"></div>
     <div class="hint" id="partNote"></div>
@@ -1920,7 +1905,6 @@ const app={
         ["── 実測サイズ ──",[["ib_waist","📏腹囲"],["ib_chest","胸囲"],["ib_shoulder","肩周り"],["ib_armL","上腕(左)"],["ib_armR","上腕(右)"],["ib_thigh","太もも"],["ib_neck","首"]]],
         ["── InBody ──",[["ib_wt","体重"],["ib_smm","骨格筋量"],["ib_mm","筋肉量"],["ib_fat","体脂肪量"],["ib_pbf","体脂肪率"],["ib_tbw","体水分量"]]],
         ["── 栄養・TDEE ──",[["nu_wk_kcal","🍽 週平均kcal"],["nu_wk_wt","⚖ 朝体重 週平均"],["nu_tdee","🔥 推定TDEE(週)"],["nu_kcal","kcal(日次)"],["nu_fiber","食物繊維(日次)"],["nu_steps","歩数(日次)"],["nu_amWt","朝体重(日次)"],["nu_p","タンパク質(日次)"],["nu_f","脂質(日次)"],["nu_c","炭水化物(日次)"],["nu_salt","食塩(日次)"]]],
-        ["── 定刻 ──",[["punct_week","⏰ 定刻達成率(週次)"],["punct_day","⏰ 定刻達成率(日次)"]]],
         ["── トレMAX ──",MENU.flatMap(m=>m.ex.concat(m.off||[])).concat(Object.values(DB.customEx||{}).flat()).filter((e,i,a)=>a.findIndex(x=>x.n===e.n)===i).map(e=>["tr_"+e.n,e.n.replace("★","")])]];
       groups.forEach(([label,items])=>{const og=document.createElement("optgroup");og.label=label;
         items.forEach(([v,t])=>{const o=document.createElement("option");o.value=v;o.textContent=t;og.appendChild(o);});sel.appendChild(og);});
