@@ -35,6 +35,20 @@
   .btn.ghost{background:#eee9df;color:var(--ink);}
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy-d);color:#fff;padding:10px 20px;border-radius:24px;font-size:13px;font-weight:700;z-index:40;opacity:0;transition:opacity .3s;pointer-events:none;}
   .toast.show{opacity:1;}
+  /* rest timer */
+  .restbar{position:fixed;left:12px;right:12px;bottom:12px;max-width:600px;margin:0 auto;background:var(--navy-d);color:#fff;border-radius:14px;padding:9px 12px;box-shadow:0 8px 24px rgba(15,36,64,.3);z-index:46;display:none;align-items:center;gap:8px;}
+  .restbar.show{display:flex;}
+  .restbar .rl{flex:1;min-width:0;}
+  .restbar .rn{font-size:10.5px;opacity:.85;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .restbar .rt{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1;letter-spacing:.02em;}
+  .restbar.done{background:var(--up);}
+  .restbar.done .rt{font-size:17px;}
+  .restbar.done button:not(:last-of-type){display:none;}
+  .restbar button{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:9px;padding:8px 10px;font-size:13px;font-weight:800;font-family:inherit;cursor:pointer;flex:none;}
+  .restbar .bar{position:absolute;left:12px;right:12px;bottom:0;height:3px;background:rgba(255,255,255,.15);border-radius:0 0 14px 14px;overflow:hidden;}
+  .restbar .bar i{display:block;height:100%;background:var(--orange);width:100%;transition:width .25s linear;}
+  body.resting .toast{bottom:84px;}
+  body.resting .aipop{bottom:132px;}
   /* AI advice popup */
   .aipop{position:fixed;left:12px;right:12px;bottom:70px;max-width:600px;margin:0 auto;background:#fff;border:1.5px solid var(--navy);border-left:6px solid var(--orange);border-radius:14px;padding:11px 14px 11px 12px;box-shadow:0 8px 24px rgba(15,36,64,.22);z-index:45;display:none;}
   .aipop.show{display:block;animation:aiin .25s ease-out;}
@@ -552,6 +566,7 @@
 
   <!-- COND removed -->
 </div>
+<div class="restbar" id="restBar"><div class="rl"><div class="rn" id="restName">休憩</div><div class="rt" id="restTime">0:00</div></div><button onclick="app.adjRest(-30)">−30</button><button onclick="app.adjRest(30)">+30</button><button onclick="app.stopRest()">✕</button><div class="bar"><i id="restFill"></i></div></div>
 <div class="aipop" id="aiPop" onclick="app.hideAiPop()"><div class="ah"><span id="aiPopHd">🤖 AIアドバイス</span><button class="x" onclick="event.stopPropagation();app.hideAiPop()">×</button></div><div class="at" id="aiPopTx"></div></div>
 <div class="toast" id="toast"></div>
 
@@ -652,6 +667,9 @@ const NUTRI_FIELDS=[{k:"kcal",n:"kcal",u:"kcal",st:"1"},{k:"p",n:"P",u:"g",st:"0
 const HAE_MAP={dietary_energy:"kcal",protein:"p",total_fat:"f",carbohydrates:"c",fiber:"fiber",sodium:"sodium",step_count:"steps",weight_body_mass:"weight"};
 const NUTRI_CALC_FROM="2026-11-16";
 const SYNC_KEY="anzu_tracker_sync";
+const REST_KEY="anzu_tracker_rest"; // 休憩タイマー（再読み込みしても続くよう終了時刻を保存）
+const REST_COMPOUND=120,REST_ISO=90; // 多関節2分・単関節90秒（メニューの方針どおり）
+const REST_COMPOUND_RE=/プルダウン|ロー|スクワット|レッグプレス|RDL|デッド|プレス|ハック|ランジ|ディップ|チンニング|懸垂/;
 const AI_KEY="anzu_tracker_ai"; // AIアドバイス設定（APIキー・ON/OFF）。DB とは別に保存し、バックアップには含めない
 const AI_MODEL="claude-opus-5-5";
 // 切り口をランダムに変えて、毎回違うアドバイスにする
@@ -1221,7 +1239,7 @@ document.getElementById("today").textContent=jpDate();
 const app={
   partIdx:0,
   init(){this.partIdx=0;
-    this.renderParts();this.renderEx();this.renderTodayRecord();this.renderLabInputs();this.renderMedBtns();this.renderIBInputs();this.renderMeasureInputs();this.renderNutriInputs();this.renderPunct();this.renderSync();this.autoSync();this.renderAi();},
+    this.renderParts();this.renderEx();this.renderTodayRecord();this.renderLabInputs();this.renderMedBtns();this.renderIBInputs();this.renderMeasureInputs();this.renderNutriInputs();this.renderPunct();this.renderSync();this.autoSync();this.renderAi();this.resumeRest();},
   toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1600);},
   // ---- training (part-based, one session per date) ----
   renderParts(){const el=document.getElementById("partSel");el.innerHTML="";
@@ -1358,7 +1376,7 @@ const app={
     document.getElementById("r-"+ei).value="";document.getElementById("rir-"+ei).value="";
     if(document.getElementById("memo-"+ei))document.getElementById("memo-"+ei).value="";
     this.renderEx();this.renderTodayRecord();this.toast(ex.n.replace("★","")+" を記録 ✓");
-    this.aiAdvise(ei,false);},
+    this.startRest(ex);this.aiAdvise(ei,false);},
   showHistory(exName){
     const days=DB.training.filter(s=>s.exercises.some(e=>e.name===exName&&e.sets.some(st=>st.w||st.r)))
       .sort((a,b)=>a.date<b.date?1:-1);
@@ -1730,6 +1748,24 @@ const app={
         <div class="kc">${x.kcal!=null?x.kcal+'<small>kcal</small>'+dif(x.kcal,g.kcal,"kcal"):'<small style="color:var(--mute)">栄養なし</small>'}</div></div>
         <div class="nu-sub">${sub.join("")}</div>
         <div class="nu-act"><label><input type="checkbox" ${x.excluded?"checked":""} onchange="app.toggleNutriExcl('${x.date}')">記録漏れ（週平均から除外）</label><span class="sp"></span><button onclick="app.editNutri('${x.date}')">編集</button><button onclick="app.delNutri('${x.date}')">削除</button></div></div>`;}).join("");},
+  // ---- rest timer (記録のたびにカウントダウン) ----
+  restSecondsFor(ex){return REST_COMPOUND_RE.test(ex.n)?REST_COMPOUND:REST_ISO;},
+  startRest(ex,secs){const sec=secs||this.restSecondsFor(ex);this._restAudio();
+    this._rest={name:ex.n.replace("★",""),total:sec,end:Date.now()+sec*1000,done:false};localStorage.setItem(REST_KEY,JSON.stringify(this._rest));
+    document.body.classList.add("resting");clearInterval(this._restTimer);this._restTimer=setInterval(()=>this.tickRest(),250);this.tickRest();},
+  tickRest(){const r=this._rest;if(!r)return;const bar=document.getElementById("restBar");const left=Math.max(0,Math.ceil((r.end-Date.now())/1000));
+    const nextNo=(()=>{const s=this.todaySession(false);const e=s&&s.exercises.find(x=>x.name.replace("★","")===r.name);return e?e.sets.length+1:1;})();
+    if(left>0&&!r.done){bar.className="restbar show";document.getElementById("restName").textContent=`休憩 ｜ ${r.name} → 次 ${nextNo}セット目`;
+      document.getElementById("restTime").textContent=Math.floor(left/60)+":"+String(left%60).padStart(2,"0");document.getElementById("restFill").style.width=Math.max(0,Math.min(100,left/r.total*100))+"%";return;}
+    if(!r.done){r.done=true;localStorage.removeItem(REST_KEY);this._restBeep();if(navigator.vibrate)try{navigator.vibrate([200,100,200,100,400]);}catch(e){}
+      bar.className="restbar show done";document.getElementById("restName").textContent=r.name;document.getElementById("restTime").textContent=`休憩終了 ▸ ${nextNo}セット目へ`;document.getElementById("restFill").style.width="0%";
+      clearInterval(this._restTimer);this._restTimer=setTimeout(()=>this.stopRest(),20000);}},
+  adjRest(d){const r=this._rest;if(!r||r.done)return;r.end=Math.max(Date.now()+1000,r.end+d*1000);r.total=Math.max(r.total+d,30);localStorage.setItem(REST_KEY,JSON.stringify(r));this.tickRest();},
+  stopRest(){clearInterval(this._restTimer);clearTimeout(this._restTimer);this._rest=null;localStorage.removeItem(REST_KEY);document.getElementById("restBar").className="restbar";document.body.classList.remove("resting");},
+  resumeRest(){try{const r=JSON.parse(localStorage.getItem(REST_KEY));if(r&&r.end>Date.now()){this._rest=r;document.body.classList.add("resting");this._restTimer=setInterval(()=>this.tickRest(),250);this.tickRest();}else localStorage.removeItem(REST_KEY);}catch(e){}},
+  // 音：記録ボタン（ユーザー操作）の時点で AudioContext を用意しておくと、iPhone でも終了時に鳴らせる
+  _restAudio(){try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;if(!this._ac)this._ac=new AC();if(this._ac.state==="suspended")this._ac.resume();}catch(e){}},
+  _restBeep(){try{const ac=this._ac;if(!ac)return;[0,0.25,0.5].forEach(t0=>{const o=ac.createOscillator(),g=ac.createGain();o.type="sine";o.frequency.value=880;g.gain.setValueAtTime(0.0001,ac.currentTime+t0);g.gain.exponentialRampToValueAtTime(0.4,ac.currentTime+t0+0.02);g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+t0+0.18);o.connect(g);g.connect(ac.destination);o.start(ac.currentTime+t0);o.stop(ac.currentTime+t0+0.2);});}catch(e){}},
   // ---- AI advice (Claude API, 記録のたびに一言) ----
   aiCfg(){try{return JSON.parse(localStorage.getItem(AI_KEY))||{};}catch(e){return {};}},
   renderAi(){const c=this.aiCfg();const k=document.getElementById("aiKey");if(!k)return;k.value=c.key||"";document.getElementById("aiOn").checked=c.on!==false;
