@@ -660,6 +660,7 @@ const AI_SYSTEM=`あなたは日本語で答える経験豊富なパーソナル
 最優先は背中と肩（側部・後部・上背）の発達。胸・脚・腕は維持量。
 制約：左肩は保護（肩のプレス系は禁止、片腕・低速・可動域を欲張らない）、腰は保護（デッドリフトは RDL で代替、腰中立）、肘は保護（高重量カールやスカルクラッシャーは避ける）。
 進め方：ダブルプログレッション。全セットで回数上限に RIR1〜2 で届いたら次回 +2.5kg（ダンベルは片手 +2.5kg、マシンは1枚）。多関節は休憩2分、単関節は60〜90秒。
+種目名は本人の略称のことがある（例：「ケーブルプルナロウ」＝狭い手幅のケーブルロー/プル、「シーテッドロープレート」＝プレート装着式のシーテッドロー）。目安欄の説明があればそれを優先し、器具や動きが特定できないときは決めつけず、どの変種にも当てはまる助言（重量・回数の判断、テンポ、休憩、安全）に寄せる。
 回答ルール：1文だけ、全角60字以内。具体的な数字や動作に落とす。前置き・挨拶・絵文字・箇条書きなし。与えられた記録だけから判断し、無い情報は推測で断定しない。
 RIR0 が続く、前回より大きく落ちている、痛みのメモがある等の危険信号があれば、切り口の希望より優先して指摘する。`; // 自動同期の設定（URL・合言葉・最終同期）。DB とは別に保存し、バックアップには含めない
 // Google Apps Script に貼るコード（Drive「ヘルスケア同期」の HealthAutoExport-*.json を読み、必要な項目だけ返す）
@@ -1269,7 +1270,7 @@ const app={
         prev=`<div class="prev"><span><span class="lbl">前回 ${last.date.slice(5)}</span><br><span class="val">${b.w||"-"}kg × ${b.r||"-"}回</span></span><span class="goal">目標 ▸ ${goal}</span></div>`;}
       else prev=`<div class="prev"><span class="lbl">前回記録なし（初回）</span></div>`;
       const cust=this.isCustom(this.partIdx,ei);
-      const delBtn=cust?`<button class="del" style="background:none;border:none;color:var(--mute);font-size:16px;cursor:pointer;" onclick="app.delCustomEx(${ei})" title="この種目を削除">🗑</button>`:"";
+      const delBtn=cust?`<button class="del" style="background:none;border:none;color:var(--mute);font-size:15px;cursor:pointer;" onclick="app.editCustomEx(${ei})" title="目安・説明を編集（AIにも渡ります）">✎</button><button class="del" style="background:none;border:none;color:var(--mute);font-size:16px;cursor:pointer;" onclick="app.delCustomEx(${ei})" title="この種目を削除">🗑</button>`:"";
       const done=sess?(sess.exercises.find(e=>e.name===ex.n)||{sets:[]}).sets:[];
       let doneHtml="";
       if(done.length){
@@ -1326,6 +1327,10 @@ const app={
     DB.customEx[p].push({n:name,t:t||"",w:w?parseFloat(w):undefined});persist();
     this.closeAddEx();this.renderEx();this.toast(name+" を追加 ✓");},
   _appendOffBox(wrap,offBox){if(offBox&&!offBox.parentNode)wrap.appendChild(offBox);},
+  // 追加種目の目安・説明を後から編集（AIアドバイスの判断材料にもなる）
+  editCustomEx(ei){const p=MENU[this.partIdx].part;const base=this.stdEx(this.partIdx).length;const ci=ei-base;const arr=DB.customEx[p]||[];if(ci<0||ci>=arr.length)return;
+    const cur=arr[ci].t||"";const v=prompt(`「${arr[ci].n}」の目安・説明\n（例：ナローグリップのケーブルロー・座位 ｜ 12回）\nAIアドバイスはこの説明を見て種目を判断します`,cur);
+    if(v===null)return;arr[ci].t=v.trim();persist();this.renderEx();this.toast("説明を更新 ✓");},
   delCustomEx(ei){const p=MENU[this.partIdx].part;const base=this.stdEx(this.partIdx).length;const ci=ei-base;
     const arr=DB.customEx[p]||[];if(ci<0||ci>=arr.length)return;
     if(!confirm(arr[ci].n+" を削除しますか？（記録済みの履歴は残ります）"))return;
@@ -1751,7 +1756,7 @@ const app={
     const bb=this.bestSince(ex.n);
     const nu=[...DB.nutrition].filter(x=>x.date<=today).slice(-7);const kc=nu.filter(x=>x.kcal!=null&&!x.excluded).map(x=>x.kcal);const wt=[...nu].reverse().find(x=>x.amWt!=null);
     const lines=[`日付: ${today}（${wd[d.getDay()]}）　部位: ${M.part}（${M.day||""}）`,
-      `種目: ${ex.n.replace("★","")}${ex.t?"（目安: "+ex.t+"）":""}${rec?"　今日の推奨: "+rec.s:""}${ex.alt?"　※"+ex.alt+"の代替として実施":""}`,
+      `種目: ${ex.n.replace("★","")}${ex.t?"（目安・説明: "+ex.t+"）":""}${rec?"　今日の推奨: "+rec.s:""}${ex.alt?"　※"+ex.alt+"の代替として実施":""}${this.isCustom(partIdx,this.partEx(partIdx).indexOf(ex))?"　※本人が追加した種目（名前は略称の可能性）":""}`,
       `今日のここまで（${todaySets.length}セット）: ${todaySets.length?todaySets.map((st,i)=>(i+1)+") "+fmt(st)).join("  "):"まだ記録なし"}`,
       `過去の記録: ${hist.length?hist.join(" ／ "):"なし（初回）"}`,
       `増量期の基準（11/16以降）の最高: ${bb&&bb.w?bb.w+"kg×"+bb.r+"回":"なし"}`,
