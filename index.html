@@ -146,6 +146,11 @@
   .offbox .card.off.other{background:#f4f3ef;}
   .offbox .card.off.no{border-left-color:var(--down);background:#faf2f0;opacity:.7;}
   .offbox .card.off.no .ex-num{background:var(--down);}
+  .card.maincard{border-left:5px solid var(--navy);background:#f2f5f9;}
+  .card.maincard .ex-num{background:var(--navy);}
+  .offtag.main{background:var(--navy);}
+  .recrow.main .recn{color:var(--navy);}
+  .recrow.main .recn::before{content:"◆ ";color:var(--navy);}
   .card.altcard{border-left:5px solid var(--up);background:#f3f9f5;}
   .card.altcard .ex-num{background:var(--up);}
   .offtag{display:inline-block;font-size:9.5px;font-weight:800;padding:1px 6px;border-radius:6px;margin-left:6px;vertical-align:middle;color:#fff;background:#b0b4b9;}
@@ -565,17 +570,17 @@ const MENU=[
   {part:"背中",day:"月・広がり",note:"月：背中A（広がり）＋リア。左肩はプルオーバーで休める。多関節2分・単関節60〜90秒休憩。約15セット。",
    recNote:"増量期(12月〜)：背中・肩が最優先。この日は広がり。プルダウンとプルオーバーは伸ばし切ってから引く。全セットで回数上限に届いたら次回+2.5kg。",
    rec:[{n:"★ラットプルダウン（ワイド）",s:"4×8-10"},{n:"ラットプルダウン（リバース）",s:"3×10-12"},{n:"プルオーバー（ケーブル）",s:"3×12-15"},{n:"リバースペックフライ",s:"3×15-20"},{n:"ケーブル・バイセプスカール",s:"2×10-12"}],
-   ex:[{n:"★ラットプルダウン（ワイド）",t:"横の広がり ｜ 8–10回",w:40,star:true},{n:"ラットプルダウン（リバース）",t:"広背下部 ｜ 10–12回"},{n:"プルオーバー（ケーブル）",t:"左肩休め単離 ｜ 12–15回",w:30},{n:"リバースペックフライ",t:"肩後部（週5回の1回目）｜ 15–20回",w:30},{n:"ケーブル・バイセプスカール",t:"二頭 ｜ 10–12回",w:35},{n:"シーテッドロー（ケーブル）",t:"混雑時：プルダウンの代わりに同じセット数。普段は金に ｜ 10–12回",w:40,alt:"ワイドプルダウン",altOf:"★ラットプルダウン（ワイド）"}],
+   ex:[{n:"★ラットプルダウン（ワイド）",t:"横の広がり ｜ 8–10回",w:40,star:true,main:true},{n:"ラットプルダウン（リバース）",t:"広背下部 ｜ 10–12回"},{n:"プルオーバー（ケーブル）",t:"左肩休め単離 ｜ 12–15回",w:30},{n:"リバースペックフライ",t:"肩後部（週5回の1回目）｜ 15–20回",w:30},{n:"ケーブル・バイセプスカール",t:"二頭 ｜ 10–12回",w:35},{n:"シーテッドロー（ケーブル）",t:"混雑時：プルダウンの代わりに同じセット数。普段は金に ｜ 10–12回",w:40,alt:"ワイドプルダウン",altOf:"★ラットプルダウン（ワイド）",main:true}],
    off:[]},
   {part:"胸",day:"火・側部も",note:"火：胸は維持量＋肩側部（週3回の1回目）。左肩保護、プレスは胸のみ。採血前日なので脚はやらない。約14セット。",
    recNote:"増量期(12月〜)：胸は落とさない程度（週2回・計9セット）。側部はケーブルを体の後ろから通して伸長位から。左は低速・可動域を欲張らない。",
    rec:[{n:"インクライン・ダンベルプレス",s:"3×8-10"},{n:"シーテッドチェストマシン",s:"2×10-12"},{n:"ペックフライ（マシン）",s:"2×12-15"},{n:"★ケーブル・サイドレイズ（片腕）",s:"5×12-15"},{n:"ケーブル・プレスダウン",s:"2×10-12"}],
-   ex:[{n:"インクライン・ダンベルプレス",t:"上部 ｜ 8–10回",w:17.5,star:true},{n:"シーテッドチェストマシン",t:"固定軌道・胸の2種目目 ｜ 10–12回。インクラインのベンチが混んでいれば先にこれ",w:70},{n:"ペックフライ（マシン）",t:"内側収縮 ｜ 12–15回"},{n:"★ケーブル・サイドレイズ（片腕）",t:"体の後ろから・伸長位 ｜ 12–15回。ケーブルが混んでいればダンベルで同じ回数",w:12.5,star:true},{n:"ケーブル・プレスダウン",t:"三頭 ｜ 10–12回"},{n:"シーテッドインクラインマシン（アウンズ）",t:"インクラインDBの代わりに同じ 3×8-10（上部胸・固定軌道。気分で選んでOK）",alt:"インクライン・ダンベルプレス",altOf:"インクライン・ダンベルプレス"},{n:"チェストプレス（マシン）",t:"シーテッドチェストマシンの代わりに同じ 2×10-12（固定軌道）",alt:"シーテッドチェストマシン",altOf:"シーテッドチェストマシン"}],
+   ex:[{n:"インクライン・ダンベルプレス",t:"上部 ｜ 8–10回",w:17.5,star:true,main:true},{n:"シーテッドチェストマシン",t:"固定軌道・胸の2種目目 ｜ 10–12回。インクラインのベンチが混んでいれば先にこれ",w:70},{n:"ペックフライ（マシン）",t:"内側収縮 ｜ 12–15回"},{n:"★ケーブル・サイドレイズ（片腕）",t:"体の後ろから・伸長位 ｜ 12–15回。ケーブルが混んでいればダンベルで同じ回数",w:12.5,star:true},{n:"ケーブル・プレスダウン",t:"三頭 ｜ 10–12回"},{n:"シーテッドインクラインマシン（アウンズ）",t:"インクラインDBの代わりに同じ 3×8-10（上部胸・固定軌道。気分で選んでOK）",alt:"インクライン・ダンベルプレス",altOf:"インクライン・ダンベルプレス",main:true},{n:"チェストプレス（マシン）",t:"シーテッドチェストマシンの代わりに同じ 2×10-12（固定軌道）",alt:"シーテッドチェストマシン",altOf:"シーテッドチェストマシン"}],
    off:[]},
   {part:"脚",day:"水・四頭",note:"水：脚A（四頭）＋リア少し。スクワットだけMAXを追う。腰が丸まらない深さで。約15セット。",
    recNote:"増量期(12月〜)：スクワット4×6-8で伸ばす。四頭は週2回（水・土）。フェイスプルは小指を上に、肘を肩の高さで。カーフはレッグプレスで足先だけ乗せて。",
    rec:[{n:"スクワット",s:"4×6-8"},{n:"レッグプレス",s:"3×10-12"},{n:"レッグエクステンション",s:"3×15-20"},{n:"フェイスプル",s:"3×15-20"},{n:"カーフレイズ（レッグプレス）",s:"2×12-15"}],
-   ex:[{n:"スクワット",t:"唯一MAXを追う ｜ 6–8回",star:true},{n:"レッグプレス",t:"四頭 ｜ 10–12回。ラックが混んでいれば先にこれを重めで"},{n:"レッグエクステンション",t:"トップ静止 ｜ 15–20回"},{n:"フェイスプル",t:"ロープ・小指上・肘は肩の高さ ｜ 15–20回"},{n:"カーフレイズ（レッグプレス）",t:"足先だけ乗せる ｜ 12–15回"}],
+   ex:[{n:"スクワット",t:"唯一MAXを追う ｜ 6–8回",star:true,main:true},{n:"レッグプレス",t:"四頭 ｜ 10–12回。ラックが混んでいれば先にこれを重めで"},{n:"レッグエクステンション",t:"トップ静止 ｜ 15–20回"},{n:"フェイスプル",t:"ロープ・小指上・肘は肩の高さ ｜ 15–20回"},{n:"カーフレイズ（レッグプレス）",t:"足先だけ乗せる ｜ 12–15回"}],
    off:[{n:"レッグカール",t:"→ 土で実施。腿裏なので四頭の代替にはならない（時間があれば追加）",w:30,kind:"other"}]},
   {part:"肩",day:"木・側部上背",note:"木：肩（側部・後部・上背）。プレスなし。サイドレイズ⇄リバースペックフライを交互に回すと40分。約16セット。",
    recNote:"増量期(12月〜)：バックで肩を「ボコッ」とさせる日。側部は重さを欲張らず12.5kg前後で15回を丁寧に。Yレイズは1〜3kgで僧帽下部。フェイスプルは左肩のケアも兼ねる。",
@@ -585,7 +590,7 @@ const MENU=[
   {part:"弱点",day:"金・背中B",note:"金：背中B（厚み・上背）＋リア。シーテッドローはワイドバー4セット＋片腕3セット（同じ種目に記録）。RDLは腰中立。約15セット。",
    recNote:"増量期(12月〜)：上背の厚みの日。シーテッドローは前半ワイドバーで肘を開いてみぞおちへ・1秒止める、後半は片腕で伸ばし切る。記録は従来どおり1種目にまとめる。RDLはハムで止めて起立筋の厚み。",
    rec:[{n:"シーテッドロー（ケーブル）ワイド・上背",s:"4×8-12"},{n:"シーテッドロー（ケーブル）片腕",s:"3×10-12"},{n:"RDL（ルーマニアンデッド）",s:"3×8-10"},{n:"リバースペックフライ",s:"3×15-20"},{n:"ケーブル・バイセプスカール",s:"2×10-12"}],
-   ex:[{n:"シーテッドロー（ケーブル）",t:"ワイド上背4セット＋片腕3セット ｜ 8–12回",w:40,star:true},{n:"RDL（ルーマニアンデッド）",t:"腰中立・ハムで止める ｜ 8–10回"},{n:"リバースペックフライ",t:"肩後部 ｜ 15–20回",w:30},{n:"ケーブル・バイセプスカール",t:"二頭 ｜ 10–12回",w:35},{n:"ラットプルダウン（リバース）",t:"混雑時：シーテッドローの代わりに同じセット数 ｜ 10–12回",alt:"シーテッドロー",altOf:"シーテッドロー（ケーブル）"}],
+   ex:[{n:"シーテッドロー（ケーブル）",t:"ワイド上背4セット＋片腕3セット ｜ 8–12回",w:40,star:true,main:true},{n:"RDL（ルーマニアンデッド）",t:"腰中立・ハムで止める ｜ 8–10回"},{n:"リバースペックフライ",t:"肩後部 ｜ 15–20回",w:30},{n:"ケーブル・バイセプスカール",t:"二頭 ｜ 10–12回",w:35},{n:"ラットプルダウン（リバース）",t:"混雑時：シーテッドローの代わりに同じセット数 ｜ 10–12回",alt:"シーテッドロー",altOf:"シーテッドロー（ケーブル）"}],
    off:[{n:"★ケーブル・サイドレイズ（片腕）",t:"→ 火・木・土で実施。肩側部なので背中の代替にはならない",w:12.5,kind:"other"}]},
   {part:"腕",day:"土・脚B胸軽",note:"土：脚B（腿裏）＋胸軽め＋側部3回目＋腕。週6のうち1日抜くならこの日。約15セット。",
    recNote:"増量期(12月〜)：腿裏と胸の2回目を軽く。インクラインは火より軽い重量で丁寧に。腕は毎回少しずつで十分（二頭は背中、三頭は胸で使われている）。",
@@ -1264,8 +1269,8 @@ const app={
       const recDiv=document.createElement("div");recDiv.className="card recbox";
       recDiv.innerHTML=`<div class="rechd">🔥 増量期（12月〜）背中・肩 特化メニュー ／ 週6</div>
         <div class="recnote">${M.recNote||""}</div>
-        ${M.rec.map((r,i)=>`<div class="recrow"><span class="recn">${i+1}. ${r.n}</span><span class="recs">${r.s}</span></div>`).join("")}
-        <div class="rechint">↓ 下の登録種目に記録します。過去の記録もそのまま残ります。</div>`;
+        ${M.rec.map((r,i)=>`<div class="recrow${M.ex.some(e=>e.main&&!e.alt&&r.n.replace("★","").startsWith(e.n.replace("★","")))?" main":""}"><span class="recn">${i+1}. ${r.n}</span><span class="recs">${r.s}</span></div>`).join("")}
+        <div class="rechint">◆ 紺＝主種目（ストレートセット・2分休憩・ここで重量を伸ばす）　緑＝混雑時の代替　↓ 下の登録種目に記録します。</div>`;
       wrap.appendChild(recDiv);
     }
     let offBox=null;
@@ -1293,7 +1298,7 @@ const app={
         }).join("")+'</div>';
       }
       const gymSel=GYMS.map(g=>`<button class="gymbtn" id="gym-${ei}-${g.k}" onclick="app.pickGym(${ei},'${g.k}')">${g.n}</button>`).join("");
-      card.innerHTML=`<div class="ex-h"><div class="ex-num">${ei+1}</div><div style="flex:1"><div class="ex-name"><span class="exname-tap" onclick="app.showHistory('${ex.n.replace(/'/g,"")}')">${ex.star&&!ex.n.startsWith("★")?'<span class="ex-star">★</span>':''}${ex.n}</span>${ex.alt?`<span class="offtag alt">${ex.alt}の代替</span>`:""}<button class="aibtn" title="AIアドバイス" onclick="app.aiAdvise(${ei},true)">💬</button>${isOff?`<span class="offtag ${ex.kind||"other"}">${ex.kind==="no"?"やらない":"別部位"}</span>`:""}${cust?' <span style="font-size:9px;color:var(--care);font-weight:700;">追加</span>':''}</div><div class="ex-target">${ex.t||""}</div></div>${delBtn}</div>${prev}
+      card.innerHTML=`<div class="ex-h"><div class="ex-num">${ei+1}</div><div style="flex:1"><div class="ex-name"><span class="exname-tap" onclick="app.showHistory('${ex.n.replace(/'/g,"")}')">${ex.star&&!ex.n.startsWith("★")?'<span class="ex-star">★</span>':''}${ex.n}</span>${ex.main?`<span class="offtag main">主種目・ストレート2分</span>`:""}${ex.alt?`<span class="offtag alt">${ex.alt}の代替</span>`:""}<button class="aibtn" title="AIアドバイス" onclick="app.aiAdvise(${ei},true)">💬</button>${isOff?`<span class="offtag ${ex.kind||"other"}">${ex.kind==="no"?"やらない":"別部位"}</span>`:""}${cust?' <span style="font-size:9px;color:var(--care);font-weight:700;">追加</span>':''}</div><div class="ex-target">${ex.t||""}</div></div>${delBtn}</div>${prev}
         ${doneHtml}
         <div class="gymsel">${gymSel}</div>
         <input class="gymname-in" id="gymname-${ei}" placeholder="ジム名を入力" style="display:none;">
@@ -1305,7 +1310,7 @@ const app={
           <button class="logbtn" onclick="app.logSet(${ei})">記録</button>
         </div>
         <input class="setmemo" id="memo-${ei}" placeholder="メモ（任意）">`;
-      if(ex.alt)card.classList.add("altcard");
+      if(ex.main)card.classList.add("maincard");else if(ex.alt)card.classList.add("altcard");
       if(isOff){card.classList.add("off",ex.kind||"other");offBox.appendChild(card);}else{if(offBox&&!offBox.parentNode)wrap.appendChild(offBox);wrap.appendChild(card);}
       if(this._gymPick&&this._gymPick[ei]){const g=this._gymPick[ei];const b=document.getElementById(`gym-${ei}-${g}`);if(b)b.classList.add("on-"+g);
         if(g==="o"){const ni=document.getElementById("gymname-"+ei);if(ni){ni.style.display="block";if(this._gymName&&this._gymName[ei])ni.value=this._gymName[ei];}}}
@@ -1763,7 +1768,7 @@ const app={
   circuitNext(ex){const c=this.circ();const now=Date.now();const cand=Object.entries(c.last||{}).filter(([n,t])=>n!==ex.n&&now-t<10*60*1000).map(([n,t])=>{const o=this.exByName(n);return {n,ex:o,ready:t+this.restSecondsFor(o)*1000,done:this.exerciseDone(o)};}).filter(x=>!x.done).sort((a,b)=>a.ready-b.ready);
     return cand[0]||null;},
   startRest(ex,secs){const done=this.exerciseDone(ex);let next=done?this.nextPlanned(ex):null;let sec=secs||(done?REST_MOVE:this.restSecondsFor(ex));let mode=done?"move":"set";let end=Date.now()+sec*1000;this._restAudio();
-    if(!secs&&this.circuitOn()){const cn=this.circuitNext(ex);
+    if(!secs&&this.circuitOn()&&!ex.main){const cn=this.circuitNext(ex); // 主種目はサーキットに乗せず通常の休憩
       if(cn){mode="circuit";next=cn.n.replace("★","");end=Math.max(cn.ready,Date.now()+1000);sec=Math.max(1,Math.round((end-Date.now())/1000));}
       else if(!done){mode="set";}} // 相手がいなければ通常の休憩（この種目の次セット、または別種目を始める）
     this._rest={name:ex.n.replace("★",""),total:sec,end,done:false,mode,next};localStorage.setItem(REST_KEY,JSON.stringify(this._rest));
@@ -1815,7 +1820,8 @@ const app={
       `増量期の基準（11/16以降）の最高: ${bb&&bb.w?bb.w+"kg×"+bb.r+"回":"なし"}`,
       `直近7日の栄養: ${kc.length?"平均 "+Math.round(kc.reduce((a,b)=>a+b,0)/kc.length)+"kcal（記録"+kc.length+"日）":"記録なし"}${wt?"　朝体重 "+wt.amWt+"kg（"+wt.date.slice(5)+"）":""}`,
       `切り口の希望: ${AI_ANGLES[Math.floor(Math.random()*AI_ANGLES.length)]}（不自然なら無視して最も大事なことを）`];
-    if(this.circuitOn())lines.push("進め方: サーキット（別の種目と交互に回していて、セット間の休憩は別種目で埋めている。「休憩を2分取れ」のような助言は不要）");
+    if(ex.main)lines.push("位置づけ: 今日の主種目。ストレートセットで2分休み、ここで重量を伸ばす（ダブルプログレッションの判定対象）");
+    if(this.circuitOn()&&!ex.main)lines.push("進め方: サーキット（別の種目と交互に回していて、セット間の休憩は別種目で埋めている。「休憩を2分取れ」のような助言は不要）");
     const pl=this.plannedSets(ex,partIdx);const nx=this.nextPlanned(ex,partIdx);
     if(pl!=null&&todaySets.length>=pl){lines.push(`状態: 予定の${pl}セットを終えて、この種目は今日はこれで終わり。次のセットの話はしない。`);
       return lines.join("\n")+"\n\n"+(nx?`この種目の総括（今日の出来と次回の重量・回数の判断）か、次の種目「${nx}」への準備の一言を1文で。`:nx===""?"今日のメニューはこれで最後。この種目の総括と、今日全体のねぎらいを1文で。":"この種目の総括（今日の出来と次回の重量・回数の判断）を1文で。");}
