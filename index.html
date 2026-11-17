@@ -35,6 +35,10 @@
   .btn.ghost{background:#eee9df;color:var(--ink);}
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy-d);color:#fff;padding:10px 20px;border-radius:24px;font-size:13px;font-weight:700;z-index:40;opacity:0;transition:opacity .3s;pointer-events:none;}
   .toast.show{opacity:1;}
+  .sec-t2:has(.circbtn){display:flex;align-items:center;gap:8px;}
+  .circbtn{margin-left:auto;flex:none;background:#eee9df;border:1px solid var(--line);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:800;font-family:inherit;cursor:pointer;color:var(--mute);}
+  .circbtn.on{background:var(--care);border-color:var(--care);color:#fff;}
+  .restbar.circ{background:#1f5a63;}
   /* rest timer */
   .restbar{position:fixed;left:12px;right:12px;bottom:12px;max-width:600px;margin:0 auto;background:var(--navy-d);color:#fff;border-radius:14px;padding:9px 12px;box-shadow:0 8px 24px rgba(15,36,64,.3);z-index:46;display:none;align-items:center;gap:8px;}
   .restbar.show{display:flex;}
@@ -375,7 +379,7 @@
       <div id="ptToday"></div>
     </div>
 
-    <div class="sec-t2">部位を選んで入力（複数選択OK・肩＋脚の日も可）</div>
+    <div class="sec-t2">部位を選んで入力（複数選択OK・肩＋脚の日も可）<button class="circbtn" id="circuitBtn" onclick="app.toggleCircuit()">🔁 サーキット OFF</button></div>
     <div class="days" id="partSel"></div>
     <div class="hint" id="partNote"></div>
     <div id="exList"></div>
@@ -667,7 +671,8 @@ const NUTRI_FIELDS=[{k:"kcal",n:"kcal",u:"kcal",st:"1"},{k:"p",n:"P",u:"g",st:"0
 const HAE_MAP={dietary_energy:"kcal",protein:"p",total_fat:"f",carbohydrates:"c",fiber:"fiber",sodium:"sodium",step_count:"steps",weight_body_mass:"weight"};
 const NUTRI_CALC_FROM="2026-11-16";
 const SYNC_KEY="anzu_tracker_sync";
-const REST_KEY="anzu_tracker_rest"; // 休憩タイマー（再読み込みしても続くよう終了時刻を保存）
+const REST_KEY="anzu_tracker_rest";
+const CIRC_KEY="anzu_tracker_circuit"; // サーキットモード ON/OFF と、今日の各種目の最終セット時刻 // 休憩タイマー（再読み込みしても続くよう終了時刻を保存）
 const REST_COMPOUND=120,REST_ISO=90,REST_MOVE=180; // 多関節2分・単関節90秒・種目間の移動3分（メニューの方針どおり）
 const REST_COMPOUND_RE=/プルダウン|ロー|スクワット|レッグプレス|RDL|デッド|プレス|チェスト|インクライン|ベンチ|ハック|ランジ|ディップ|チンニング|懸垂/;
 const AI_KEY="anzu_tracker_ai"; // AIアドバイス設定（APIキー・ON/OFF）。DB とは別に保存し、バックアップには含めない
@@ -1240,7 +1245,7 @@ document.getElementById("today").textContent=jpDate();
 const app={
   partIdx:0,
   init(){this.partIdx=0;
-    this.renderParts();this.renderEx();this.renderTodayRecord();this.renderLabInputs();this.renderMedBtns();this.renderIBInputs();this.renderMeasureInputs();this.renderNutriInputs();this.renderPunct();this.renderSync();this.autoSync();this.renderAi();this.resumeRest();},
+    this.renderParts();this.renderEx();this.renderTodayRecord();this.renderLabInputs();this.renderMedBtns();this.renderIBInputs();this.renderMeasureInputs();this.renderNutriInputs();this.renderPunct();this.renderSync();this.autoSync();this.renderAi();this.resumeRest();this.renderCircuit();},
   toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1600);},
   // ---- training (part-based, one session per date) ----
   renderParts(){const el=document.getElementById("partSel");el.innerHTML="";
@@ -1377,7 +1382,7 @@ const app={
     document.getElementById("r-"+ei).value="";document.getElementById("rir-"+ei).value="";
     if(document.getElementById("memo-"+ei))document.getElementById("memo-"+ei).value="";
     this.renderEx();this.renderTodayRecord();this.toast(ex.n.replace("★","")+" を記録 ✓");
-    this.startRest(ex);this.aiAdvise(ei,false);},
+    this.noteSet(ex);this.startRest(ex);this.aiAdvise(ei,false);},
   showHistory(exName){
     const days=DB.training.filter(s=>s.exercises.some(e=>e.name===exName&&e.sets.some(st=>st.w||st.r)))
       .sort((a,b)=>a.date<b.date?1:-1);
@@ -1761,16 +1766,31 @@ const app={
   setsToday(ex){const s=this.todaySession(false);const e=s&&s.exercises.find(x=>x.name===ex.n);return e?e.sets.length:0;},
   // 予定セット数を終えたか（不明なら false）
   exerciseDone(ex,partIdx){const pl=this.plannedSets(ex,partIdx);return pl!=null&&this.setsToday(ex)>=pl;},
-  startRest(ex,secs){const done=this.exerciseDone(ex);const next=done?this.nextPlanned(ex):null;const sec=secs||(done?REST_MOVE:this.restSecondsFor(ex));this._restAudio();
-    this._rest={name:ex.n.replace("★",""),total:sec,end:Date.now()+sec*1000,done:false,mode:done?"move":"set",next:next};localStorage.setItem(REST_KEY,JSON.stringify(this._rest));
+  // ---- circuit mode (種目を交互に回す) ----
+  circ(){try{const c=JSON.parse(localStorage.getItem(CIRC_KEY))||{};if(c.date!==todayStr()){c.date=todayStr();c.last={};}return c;}catch(e){return {date:todayStr(),last:{}};}},
+  saveCirc(c){localStorage.setItem(CIRC_KEY,JSON.stringify(c));},
+  circuitOn(){return !!this.circ().on;},
+  toggleCircuit(){const c=this.circ();c.on=!c.on;this.saveCirc(c);this.renderCircuit();this.toast(c.on?"🔁 サーキットモード ON：直前の別種目に戻るまでをカウント":"サーキットモード OFF");},
+  renderCircuit(){const b=document.getElementById("circuitBtn");if(!b)return;const on=this.circuitOn();b.className="circbtn"+(on?" on":"");b.textContent=on?"🔁 サーキット ON":"🔁 サーキット OFF";},
+  noteSet(ex){const c=this.circ();c.last=c.last||{};c.last[ex.n]=Date.now();this.saveCirc(c);},
+  exByName(n){return this.partEx(this.partIdx).find(e=>e.n===n)||MENU.flatMap((m,i)=>this.stdEx(i)).find(e=>e.n===n)||{n};},
+  // サーキット中：直近10分に記録した「別の種目」のうち、まだ予定セットが残っていて最も早く休憩が明けるもの
+  circuitNext(ex){const c=this.circ();const now=Date.now();const cand=Object.entries(c.last||{}).filter(([n,t])=>n!==ex.n&&now-t<10*60*1000).map(([n,t])=>{const o=this.exByName(n);return {n,ex:o,ready:t+this.restSecondsFor(o)*1000,done:this.exerciseDone(o)};}).filter(x=>!x.done).sort((a,b)=>a.ready-b.ready);
+    return cand[0]||null;},
+  startRest(ex,secs){const done=this.exerciseDone(ex);let next=done?this.nextPlanned(ex):null;let sec=secs||(done?REST_MOVE:this.restSecondsFor(ex));let mode=done?"move":"set";let end=Date.now()+sec*1000;this._restAudio();
+    if(!secs&&this.circuitOn()){const cn=this.circuitNext(ex);
+      if(cn){mode="circuit";next=cn.n.replace("★","");end=Math.max(cn.ready,Date.now()+1000);sec=Math.max(1,Math.round((end-Date.now())/1000));}
+      else if(!done){mode="set";}} // 相手がいなければ通常の休憩（この種目の次セット、または別種目を始める）
+    this._rest={name:ex.n.replace("★",""),total:sec,end,done:false,mode,next};localStorage.setItem(REST_KEY,JSON.stringify(this._rest));
     document.body.classList.add("resting");clearInterval(this._restTimer);this._restTimer=setInterval(()=>this.tickRest(),250);this.tickRest();},
   tickRest(){const r=this._rest;if(!r)return;const bar=document.getElementById("restBar");const left=Math.max(0,Math.ceil((r.end-Date.now())/1000));
     const nextNo=(()=>{const s=this.todaySession(false);const e=s&&s.exercises.find(x=>x.name.replace("★","")===r.name);return e?e.sets.length+1:1;})();
-    const lbl=r.mode==="move"?(r.next===""?`${r.name} 完了 ｜ 今日のメニューはここまで`:r.next?`${r.name} 完了 ｜ 次 → ${r.next}`:`${r.name} 完了 ｜ 次の種目へ移動`):`休憩 ｜ ${r.name} → 次 ${nextNo}セット目`;
-    if(left>0&&!r.done){bar.className="restbar show";document.getElementById("restName").textContent=lbl;
+    const circNo=r.mode==="circuit"?(()=>{const s=this.todaySession(false);const e=s&&s.exercises.find(x=>x.name.replace("★","")===r.next);return e?e.sets.length+1:1;})():0;
+    const lbl=r.mode==="circuit"?`🔁 サーキット ｜ 次 → ${r.next}（${circNo}セット目）`:r.mode==="move"?(r.next===""?`${r.name} 完了 ｜ 今日のメニューはここまで`:r.next?`${r.name} 完了 ｜ 次 → ${r.next}`:`${r.name} 完了 ｜ 次の種目へ移動`):`休憩 ｜ ${r.name} → 次 ${nextNo}セット目`;
+    if(left>0&&!r.done){bar.className="restbar show"+(r.mode==="circuit"?" circ":"");document.getElementById("restName").textContent=lbl;
       document.getElementById("restTime").textContent=Math.floor(left/60)+":"+String(left%60).padStart(2,"0");document.getElementById("restFill").style.width=Math.max(0,Math.min(100,left/r.total*100))+"%";return;}
     if(!r.done){r.done=true;localStorage.removeItem(REST_KEY);this._restBeep();if(navigator.vibrate)try{navigator.vibrate([200,100,200,100,400]);}catch(e){}
-      bar.className="restbar show done";document.getElementById("restName").textContent=r.name;document.getElementById("restTime").textContent=r.mode==="move"?(r.next===""?"お疲れさま ▸ 今日のメニュー完了":r.next?`移動終了 ▸ ${r.next} へ`:"移動終了 ▸ 次の種目へ"):`休憩終了 ▸ ${nextNo}セット目へ`;document.getElementById("restFill").style.width="0%";
+      bar.className="restbar show done";document.getElementById("restName").textContent=r.name;document.getElementById("restTime").textContent=r.mode==="circuit"?`${r.next} へ ▸ ${circNo}セット目`:r.mode==="move"?(r.next===""?"お疲れさま ▸ 今日のメニュー完了":r.next?`移動終了 ▸ ${r.next} へ`:"移動終了 ▸ 次の種目へ"):`休憩終了 ▸ ${nextNo}セット目へ`;document.getElementById("restFill").style.width="0%";
       clearInterval(this._restTimer);this._restTimer=setTimeout(()=>this.stopRest(),20000);}},
   adjRest(d){const r=this._rest;if(!r||r.done)return;r.end=Math.max(Date.now()+1000,r.end+d*1000);r.total=Math.max(r.total+d,30);localStorage.setItem(REST_KEY,JSON.stringify(r));this.tickRest();},
   stopRest(){clearInterval(this._restTimer);clearTimeout(this._restTimer);this._rest=null;localStorage.removeItem(REST_KEY);document.getElementById("restBar").className="restbar";document.body.classList.remove("resting");},
@@ -1810,6 +1830,7 @@ const app={
       `増量期の基準（11/16以降）の最高: ${bb&&bb.w?bb.w+"kg×"+bb.r+"回":"なし"}`,
       `直近7日の栄養: ${kc.length?"平均 "+Math.round(kc.reduce((a,b)=>a+b,0)/kc.length)+"kcal（記録"+kc.length+"日）":"記録なし"}${wt?"　朝体重 "+wt.amWt+"kg（"+wt.date.slice(5)+"）":""}`,
       `切り口の希望: ${AI_ANGLES[Math.floor(Math.random()*AI_ANGLES.length)]}（不自然なら無視して最も大事なことを）`];
+    if(this.circuitOn())lines.push("進め方: サーキット（別の種目と交互に回していて、セット間の休憩は別種目で埋めている。「休憩を2分取れ」のような助言は不要）");
     const pl=this.plannedSets(ex,partIdx);const nx=this.nextPlanned(ex,partIdx);
     if(pl!=null&&todaySets.length>=pl){lines.push(`状態: 予定の${pl}セットを終えて、この種目は今日はこれで終わり。次のセットの話はしない。`);
       return lines.join("\n")+"\n\n"+(nx?`この種目の総括（今日の出来と次回の重量・回数の判断）か、次の種目「${nx}」への準備の一言を1文で。`:nx===""?"今日のメニューはこれで最後。この種目の総括と、今日全体のねぎらいを1文で。":"この種目の総括（今日の出来と次回の重量・回数の判断）を1文で。");}
