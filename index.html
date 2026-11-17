@@ -1806,18 +1806,28 @@ const app={
   hideAiPop(){document.getElementById("aiPop").className="aipop";clearTimeout(this._aiHide);},
   // 直近の記録・栄養から、1種目分の状況をまとめる（この端末のデータのみ。コードに個人値は持たない）
   aiContext(ex,partIdx){const M=MENU[partIdx];const wd=["日","月","火","水","木","金","土"];const today=todayStr();const d=new Date(today+"T00:00:00");
-    const fmt=st=>`${st.w||"?"}kg×${st.r||"?"}回${st.rir?" RIR"+st.rir:""}${st.memo?"（メモ:"+st.memo+"）":""}`;
+    const gname=st=>st.gym==="o"?(st.gymName||"その他"):((GYMS.find(g=>g.k===st.gym)||{}).n||"");
+    const fmt=st=>`${st.w||"?"}kg×${st.r||"?"}回${st.rir?" RIR"+st.rir:""}${st.gym?"@"+gname(st):""}${st.memo?"（メモ:"+st.memo+"）":""}`;
     const sess=this.todaySession(false);const todaySets=sess?((sess.exercises.find(e=>e.name===ex.n)||{}).sets||[]):[];
+    const todayGym=todaySets.length?gname(todaySets[todaySets.length-1]):(this._gymPick&&this._gymPick[this.partEx(partIdx).indexOf(ex)]?gname({gym:this._gymPick[this.partEx(partIdx).indexOf(ex)],gymName:this._gymName&&this._gymName[this.partEx(partIdx).indexOf(ex)]}):"");
+    // 今日ここまでにやった他の種目（疲労の文脈）
+    const others=sess?sess.exercises.filter(e=>e.name!==ex.n&&e.sets.length).map(e=>{const b=this.best(e.sets);return `${e.name.replace("★","")} ${e.sets.length}セット（最高 ${b?b.w+"kg×"+b.r+"回":"-"}）`;}):[];
     const rec=(M.rec||[]).find(r=>r.n.replace("★","")===ex.n.replace("★",""));
-    const hist=[];const dates=[...new Set(DB.training.map(x=>x.date))].sort().reverse();
-    for(const dt of dates){if(dt===today)continue;const e=(DB.training.find(x=>x.date===dt)||{exercises:[]}).exercises.find(x=>x.name===ex.n);if(e&&e.sets.length){hist.push(`${dt.slice(5)}: ${e.sets.map(fmt).join(", ")}`);if(hist.length>=3)break;}}
+    // 過去の記録：同じジムのものを優先して最大3回、別ジムの直近1回も添える（マシンの重量感がジムで違うため）
+    const hist=[],histOther=[];const dates=[...new Set(DB.training.map(x=>x.date))].sort().reverse();
+    for(const dt of dates){if(dt===today)continue;const e=(DB.training.find(x=>x.date===dt)||{exercises:[]}).exercises.find(x=>x.name===ex.n);if(!(e&&e.sets.length))continue;
+      const g=gname(e.sets[e.sets.length-1]);const line=`${dt.slice(5)}${g?"@"+g:""}: ${e.sets.map(st=>`${st.w||"?"}kg×${st.r||"?"}回${st.rir?" RIR"+st.rir:""}${st.memo?"（メモ:"+st.memo+"）":""}`).join(", ")}`;
+      if(!todayGym||!g||g===todayGym){if(hist.length<3)hist.push(line);}else if(histOther.length<1)histOther.push(line);
+      if(hist.length>=3&&histOther.length>=1)break;}
     const bb=this.bestSince(ex.n);
     const nu=[...DB.nutrition].filter(x=>x.date<=today).slice(-7);const kc=nu.filter(x=>x.kcal!=null&&!x.excluded).map(x=>x.kcal);const wt=[...nu].reverse().find(x=>x.amWt!=null);
     const lines=[`日付: ${today}（${wd[d.getDay()]}）　部位: ${M.part}（${M.day||""}）`,
       `種目: ${ex.n.replace("★","")}${ex.t?"（目安・説明: "+ex.t+"）":""}${rec?"　今日の推奨: "+rec.s:""}${ex.alt?"　※"+ex.alt+"の代替として実施":""}${this.isCustom(partIdx,this.partEx(partIdx).indexOf(ex))?"　※本人が追加した種目（名前は略称の可能性）":""}`,
+      `場所: ${todayGym||"未選択"}`,
       `今日のここまで（${todaySets.length}セット）: ${todaySets.length?todaySets.map((st,i)=>(i+1)+") "+fmt(st)).join("  "):"まだ記録なし"}`,
-      `過去の記録: ${hist.length?hist.join(" ／ "):"なし（初回）"}`,
-      `増量期の基準（11/16以降）の最高: ${bb&&bb.w?bb.w+"kg×"+bb.r+"回":"なし"}`,
+      `今日すでにやった他の種目: ${others.length?others.join("、"):"なし（この種目が最初）"}`,
+      `過去の記録${todayGym?"（同じジム優先）":""}: ${hist.length?hist.join(" ／ "):"なし（初回）"}${histOther.length?"　別ジムの直近: "+histOther.join(" ／ "):""}`,
+      `基準期間（${PR_BASELINE.slice(5).replace("-","/")}以降）の最高: ${bb&&bb.w?bb.w+"kg×"+bb.r+"回":"なし"}`,
       `直近7日の栄養: ${kc.length?"平均 "+Math.round(kc.reduce((a,b)=>a+b,0)/kc.length)+"kcal（記録"+kc.length+"日）":"記録なし"}${wt?"　朝体重 "+wt.amWt+"kg（"+wt.date.slice(5)+"）":""}`,
       `切り口の希望: ${AI_ANGLES[Math.floor(Math.random()*AI_ANGLES.length)]}（不自然なら無視して最も大事なことを）`];
     if(ex.main)lines.push("位置づけ: 今日の主種目。ストレートセットで2分休み、ここで重量を伸ばす（ダブルプログレッションの判定対象）");
