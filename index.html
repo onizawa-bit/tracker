@@ -329,7 +329,30 @@
   .mt-row .v{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;}
   .mt-row .v small{color:var(--mute);font-weight:600;}
   .mt-rem{font-size:11.5px;color:var(--ink);margin-top:6px;font-weight:700;}
-  .kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .kpi-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px;}
+  .trend-svg{width:100%;height:auto;display:block;border:none;background:none;}
+  .dr-legend{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:10px;color:var(--mute);font-weight:700;margin:0 2px 6px;}
+  .dr-legend i{display:inline-block;width:9px;height:9px;border-radius:2px;vertical-align:middle;margin-right:3px;}
+  .dr{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:7px 10px;margin-bottom:5px;display:grid;grid-template-columns:46px 1fr 118px;gap:6px 8px;align-items:center;cursor:pointer;}
+  .dr.ex{background:#f3f1ea;opacity:.75;}
+  .dr .d{font-size:13px;font-weight:800;color:var(--navy);line-height:1.1;}
+  .dr .d small{display:block;font-size:9.5px;color:var(--mute);font-weight:700;}
+  .dr .d .lk{display:inline-block;font-size:8.5px;color:#fff;background:var(--down);border-radius:4px;padding:0 4px;margin-top:2px;}
+  .dr .k{display:flex;align-items:center;gap:6px;min-width:0;}
+  .dr .k .kb{flex:1;height:14px;background:#eee9df;border-radius:7px;position:relative;overflow:hidden;}
+  .dr .k .kb i{display:block;height:100%;border-radius:7px;background:var(--up);}
+  .dr .k .kb i.low{background:var(--orange);} .dr .k .kb i.over{background:var(--down);} .dr .k .kb i.none{background:#cfd3d8;}
+  .dr .k .kb .gl{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--navy);opacity:.5;}
+  .dr .k .kv{font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;min-width:46px;text-align:right;}
+  .dr .k .kv small{font-size:9px;color:var(--mute);font-weight:700;}
+  .dr .m{display:flex;gap:4px;justify-content:flex-end;}
+  .dr .m span{font-size:10px;font-weight:800;padding:2px 5px;border-radius:6px;background:#f1ede4;color:var(--ink);font-variant-numeric:tabular-nums;min-width:34px;text-align:center;}
+  .dr .m span.ok{background:#e4f3ea;color:#1e5a3a;} .dr .m span.low{background:#fdebd8;color:#8a4b12;} .dr .m span.over{background:#fde3dc;color:#8a2e1a;} .dr .m span.none{color:var(--mute);}
+  .dr .x{grid-column:2 / span 2;display:flex;gap:10px;font-size:10.5px;color:var(--mute);font-weight:700;font-variant-numeric:tabular-nums;}
+  .dr .x b{color:var(--ink);}
+  .dr .x .alc{color:var(--down);}
+  .dr-detail{background:#faf8f4;border:1px solid var(--line);border-top:none;border-radius:0 0 10px 10px;margin:-7px 0 6px;padding:8px 10px;font-size:11.5px;}
+  .dr.open{border-radius:10px 10px 0 0;margin-bottom:0;}
   .kpi2{background:#f6f2ea;border-radius:10px;padding:9px 11px;}
   .kpi2 .v{font-size:20px;font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums;line-height:1.1;}
   .kpi2 .v small{font-size:11px;font-weight:700;color:var(--mute);margin-left:2px;}
@@ -566,13 +589,14 @@
 
   <!-- NUTRI -->
   <div class="view" id="view-nutri">
-    <div class="sec-t">🍽 食事（カロミル → ヘルスケア → 自動反映） <span id="mealGoalTxt" style="font-size:10.5px;color:var(--mute);font-weight:700;"></span></div>
-    <div class="hint">食事の入力はカロミルで。ここは自動で取り込んだ栄養・歩数・朝体重を見て、アルコールを判定し、今日の食べ方を提案する画面です。<span id="dietSyncTxt"></span> <a href="#" onclick="app.syncNow();return false;" style="color:var(--care)">今すぐ同期</a></div>
-    <div class="card" id="dietLatest"></div>
-    <div class="card" id="dietKpi"></div>
-    <button class="btn" style="background:var(--navy);color:#fff;margin-top:4px;" onclick="app.mealAdvice(false)">🤖 今日の食事アドバイス</button>
-    <div class="hint" style="margin-top:8px;">アドバイスは最新の記録日（通常は前日）の実績と直近7日の傾向、朝体重の推移、推定TDEE、飲酒、今日のトレ部位をもとに作ります。新しい日のデータが同期されると1回だけ自動で表示します。</div>
-
+    <div class="sec-t">📈 食事トレンド（カロミル → 自動反映） <span id="mealGoalTxt" style="font-size:10.5px;color:var(--mute);font-weight:700;"></span></div>
+    <div class="card" id="dietTrend"></div>
+    <button class="btn" style="background:var(--navy);color:#fff;margin-top:2px;" onclick="app.mealAdvice(false)">🤖 今日の食事アドバイス</button>
+    <div class="hint" style="margin-top:6px;">入力はカロミルで。ここは自動で取り込んだ栄養・歩数・朝体重の推移です。<span id="dietSyncTxt"></span> <a href="#" onclick="app.syncNow();return false;" style="color:var(--care)">今すぐ同期</a>　アドバイスは新しい記録日が届くと1回自動表示。</div>
+    <div class="sec-t" style="margin-top:14px;">日別 <span style="font-size:10.5px;color:var(--mute);font-weight:700;">タップで詳細・編集</span></div>
+    <div class="dr-legend"><span><i style="background:var(--up)"></i>目標±5%</span><span><i style="background:var(--orange)"></i>不足</span><span><i style="background:var(--down)"></i>超過</span><span><i style="background:#cfd3d8"></i>記録漏れ・なし</span><span>🍶 飲酒（推定g）</span><span>⚖ 朝体重</span></div>
+    <div id="nutriList"></div>
+    <button class="btn ghost" style="margin-top:4px;" id="nutriMoreBtn" onclick="app.nutriShowAll=!app.nutriShowAll;app.renderNutri()">それ以前も表示</button>
     <details style="margin-top:14px;"><summary style="color:var(--mute)">▸ 日ごとの合計を手入力（書き出しが止まった日の保険）</summary>
     <input type="date" class="datein" id="nutriDate" style="margin-top:8px;">
     <div class="card">
@@ -580,10 +604,7 @@
       <div class="hint" style="margin:8px 0 0;">測った項目だけ入れて保存（同じ日付は上書き、空欄は変更しません）。</div>
     </div>
     <button class="btn primary" onclick="app.saveNutri()">保存</button></details>
-    <div class="sec-t" style="margin-top:16px;">直近30日 <span id="nutriGoalTxt" style="font-size:10.5px;color:var(--mute);font-weight:700;"></span></div>
-    <div class="hint">kcal・P・F・Cの右の小さな数字は目標との差。<b>「記録漏れ」にチェックした日は週平均・推定TDEEから外れます。</b>不正確な記録は記録しないより悪い、が原則。</div>
-    <div id="nutriList"></div>
-    <button class="btn ghost" style="margin-top:4px;" id="nutriMoreBtn" onclick="app.nutriShowAll=!app.nutriShowAll;app.renderNutri()">それ以前も表示</button>
+    <div class="hint" style="margin-top:8px;">「記録漏れ」にチェックした日は週平均・推定TDEEから外れます。不正確な記録は記録しないより悪い、が原則。</div>
   </div>
 
   <!-- GRAPH -->
@@ -1776,29 +1797,32 @@ const app={
     const isNew=!DB.nutrition.some(x=>x.date===date);this.importNutrition([r]);
     if(isNew){const x=DB.nutrition.find(y=>y.date===date);if(x&&date>=NUTRI_CALC_FROM)x.excluded=false;}
     persist();NUTRI_FIELDS.forEach(f=>document.getElementById("nu-"+f.k).value="");this.toast("栄養を保存 ✓");this.renderNutri();},
-  editNutri(d){const x=DB.nutrition.find(y=>y.date===d);if(!x)return;document.getElementById("nutriDate").value=d;
-    NUTRI_FIELDS.forEach(f=>{document.getElementById("nu-"+f.k).value=x[f.k]!=null?x[f.k]:"";});window.scrollTo({top:0,behavior:"smooth"});this.toast(d.slice(5)+" を入力欄に読み込みました");},
+  editNutri(d){const x=DB.nutrition.find(y=>y.date===d);if(!x)return;const det=document.getElementById("nutriDate").closest("details");if(det)det.open=true;document.getElementById("nutriDate").value=d;
+    NUTRI_FIELDS.forEach(f=>{document.getElementById("nu-"+f.k).value=x[f.k]!=null?x[f.k]:"";});document.getElementById("nutriDate").scrollIntoView({behavior:"smooth",block:"center"});this.toast(d.slice(5)+" を入力欄に読み込みました");},
   delNutri(d){if(!confirm(d+" の栄養記録を削除しますか？"))return;DB.nutrition=DB.nutrition.filter(x=>x.date!==d);persist();this.renderNutri();},
   toggleNutriExcl(d){const x=DB.nutrition.find(y=>y.date===d);if(!x)return;x.excluded=!x.excluded;persist();this.renderNutri();},
   nutriShowAll:false,
-  renderNutri(){this.renderDiet();this.renderNutriInputs();const g=this.nutriGoal();const gt=document.getElementById("nutriGoalTxt");if(gt)gt.textContent=`目標 ${g.kcal}kcal / P${g.p}・F${g.f}・C${g.c}`;
+  renderNutri(){this.renderDiet();this.renderNutriInputs();const g=this.nutriGoal();
     const el=document.getElementById("nutriList");if(!el)return;
     const cut=new Date(Date.now()-4*3600*1000);cut.setDate(cut.getDate()-30);const cutS=cut.getFullYear()+"-"+String(cut.getMonth()+1).padStart(2,"0")+"-"+String(cut.getDate()).padStart(2,"0");
-    const all=[...DB.nutrition].reverse();const s=this.nutriShowAll?all:all.filter(x=>x.date>=cutS);
+    const all=[...DB.nutrition].filter(x=>x.date<=todayStr()).reverse();const s=this.nutriShowAll?all:all.filter(x=>x.date>=cutS);
     const more=document.getElementById("nutriMoreBtn");if(more){more.style.display=all.length>s.length||this.nutriShowAll?"block":"none";more.textContent=this.nutriShowAll?"直近30日だけ表示":`それ以前も表示（あと${all.length-s.length}日）`;}
     if(!s.length){el.innerHTML='<div class="empty">記録なし</div>';return;}
-    const wd=["日","月","火","水","木","金","土"];
-    const dif=(v,goal,unit)=>{if(v==null)return "";const d=Math.round((v-goal)*10)/10;const cls=Math.abs(d)<=goal*0.05?"ok":(d>0?"ov":"un");return `<span class="dif ${cls}">${d>0?"+":""}${unit==="kcal"?Math.round(d):d}</span>`;};
-    el.innerHTML=s.map(x=>{const dt=new Date(x.date+"T00:00:00");
-      const sub=[];
-      if(x.p!=null||x.f!=null||x.c!=null)sub.push(`<span>P<b>${x.p!=null?x.p:"-"}</b>${dif(x.p,g.p)} F<b>${x.f!=null?x.f:"-"}</b>${dif(x.f,g.f)} C<b>${x.c!=null?x.c:"-"}</b>${dif(x.c,g.c)}</span>`);
-      if(x.fiber!=null)sub.push(`<span>繊維<b>${x.fiber}</b>g</span>`);if(x.salt!=null)sub.push(`<span>塩<b>${x.salt}</b>g</span>`);
-      if(x.steps!=null)sub.push(`<span>🚶<b>${x.steps.toLocaleString()}</b>歩</span>`);
-      if(x.amWt!=null)sub.push(`<span>朝体重<b>${x.amWt}</b>kg${x.amWtTime?`<small style="color:var(--mute)"> ${x.amWtTime}</small>`:""}</span>`);
-      return `<div class="nu-row${x.excluded?" ex":""}"><div class="nu-hd"><div class="d">${x.date.slice(5).replace("-","/")}<small>(${wd[dt.getDay()]})</small>${x.excluded?'<span class="nu-tag">記録漏れ</span>':""}</div>
-        <div class="kc">${x.kcal!=null?x.kcal+'<small>kcal</small>'+dif(x.kcal,g.kcal,"kcal"):'<small style="color:var(--mute)">栄養なし</small>'}</div></div>
-        <div class="nu-sub">${sub.join("")}</div>
-        <div class="nu-act"><label><input type="checkbox" ${x.excluded?"checked":""} onchange="app.toggleNutriExcl('${x.date}')">記録漏れ（週平均から除外）</label><span class="sp"></span><button onclick="app.editNutri('${x.date}')">編集</button><button onclick="app.delNutri('${x.date}')">削除</button></div></div>`;}).join("");},
+    const wd=["日","月","火","水","木","金","土"];const open=this._nuOpen||{};
+    const cls=(v,goal)=>v==null?"none":Math.abs(v-goal)<=goal*0.05?"ok":v>goal?"over":"low";
+    el.innerHTML=s.map(x=>{const dt=new Date(x.date+"T00:00:00");const kc=x.kcal;const pct=kc!=null?Math.min(100,kc/(g.kcal*1.4)*100):0;const kcls=kc==null?"none":x.excluded?"none":cls(kc,g.kcal);
+      const macro=(k,label)=>`<span class="${x[k]==null?"none":cls(x[k],g[k])}" title="${label}">${label}${x[k]!=null?Math.round(x[k]):"–"}</span>`;
+      const alc=x.is_sober===false?`<span class="alc">🍶${Math.round(this.alcEff(x))}g</span>`:x.is_sober===true?"<span>○</span>":"";
+      const isOpen=!!open[x.date];
+      const row=`<div class="dr${x.excluded?" ex":""}${isOpen?" open":""}" onclick="app.nutriToggleRow('${x.date}')">
+        <div class="d">${x.date.slice(5).replace("-","/")}<small>${wd[dt.getDay()]}${x.date===todayStr()?"・今日":""}</small>${x.excluded?'<span class="lk">漏れ</span>':""}</div>
+        <div class="k"><div class="kb"><i class="${kcls}" style="width:${kc!=null?pct:0}%"></i><span class="gl" style="left:${100/1.4}%"></span></div><div class="kv">${kc!=null?kc:"<small>栄養なし</small>"}${kc!=null?'<small>kcal</small>':""}</div></div>
+        <div class="m">${macro("p","P")}${macro("f","F")}${macro("c","C")}</div>
+        <div class="x">${alc}${x.amWt!=null?`<span>⚖ <b>${x.amWt}</b>kg</span>`:""}${x.steps!=null?`<span>🚶 <b>${(x.steps/1000).toFixed(1)}</b>k</span>`:""}${x.fiber!=null?`<span>繊維 <b>${x.fiber}</b></span>`:""}${x.salt!=null?`<span>塩 <b>${x.salt}</b></span>`:""}</div></div>`;
+      const det=isOpen?`<div class="dr-detail">${kc!=null?`kcal ${kc}（目標比 ${kc-g.kcal>=0?"+":""}${Math.round(kc-g.kcal)}）　P${x.p}（${Math.round((x.p||0)-g.p)>=0?"+":""}${Math.round((x.p||0)-g.p)}） F${x.f}（${Math.round((x.f||0)-g.f)>=0?"+":""}${Math.round((x.f||0)-g.f)}） C${x.c}（${Math.round((x.c||0)-g.c)>=0?"+":""}${Math.round((x.c||0)-g.c)}）`:"この日の栄養データはありません"}${x.amWtTime?`　朝体重 ${x.amWt}kg（${x.amWtTime}${x.amWtSrc?"・"+x.amWtSrc:""}）`:""}${x.is_sober!=null?`　アルコール：${x.is_sober?"○ ノンアル":"● 飲酒"}（${x.alcohol_manual!=null?"手動 "+x.alcohol_manual:"推定 "+Math.max(0,x.alcohol_est)}g）`:""}
+        <div class="nu-act" style="margin-top:6px;"><label onclick="event.stopPropagation()"><input type="checkbox" ${x.excluded?"checked":""} onchange="app.toggleNutriExcl('${x.date}')">記録漏れ（週平均から除外）</label><span class="sp"></span><button onclick="event.stopPropagation();app.editNutri('${x.date}')">編集</button><button onclick="event.stopPropagation();app.delNutri('${x.date}')">削除</button></div></div>`:"";
+      return row+det;}).join("");},
+  nutriToggleRow(d){this._nuOpen=this._nuOpen||{};this._nuOpen[d]=!this._nuOpen[d];this.renderNutri();},
   // ---- rest timer (記録のたびにカウントダウン) ----
   restSecondsFor(ex){return REST_COMPOUND_RE.test(ex.n)?REST_COMPOUND:REST_ISO;},
   // おすすめ欄「3×8-10」の 3 ＝ その日の予定セット数（おすすめに無い種目は不明＝null）
@@ -1914,35 +1938,38 @@ const app={
     return (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("").trim().replace(/^「|」$/g,"");},
   // ---- diet panel (カロミル→ヘルスケア→自動反映。入力はしない) ----
   latestNutri(){return [...DB.nutrition].filter(x=>x.kcal!=null&&x.date<=todayStr()).sort((a,b)=>a.date<b.date?1:-1)[0]||null;},
-  renderDiet(){const el=document.getElementById("dietLatest");if(!el)return;const g=this.nutriGoal();const gt=document.getElementById("mealGoalTxt");if(gt)gt.textContent=`目標 ${g.kcal}kcal / P${g.p}・F${g.f}・C${g.c}`;
+  renderDiet(){const el=document.getElementById("dietTrend");if(!el)return;const g=this.nutriGoal();const gt=document.getElementById("mealGoalTxt");if(gt)gt.textContent=`目標 ${g.kcal}kcal / P${g.p}・F${g.f}・C${g.c}`;
     const sc=this.syncCfg();const st=document.getElementById("dietSyncTxt");if(st)st.textContent=sc.url?(sc.lastMsg?"（"+sc.lastMsg.split("　")[0]+"）":"（自動同期：設定済み）"):"（自動同期は取込タブで設定）";
-    const x=this.latestNutri();const wd=["日","月","火","水","木","金","土"];
-    const row=(label,val,goal,unit)=>{if(val==null)return `<div class="mt-row"><span class="k">${label}</span><div class="bar"></div><span class="v"><small>—</small></span></div>`;const pct=goal?Math.min(100,val/goal*100):0;const over=val>goal*1.05;const low=val<goal*0.8;return `<div class="mt-row"><span class="k">${label}</span><div class="bar"><i class="${over?"over":low?"low":""}" style="width:${pct}%"></i></div><span class="v">${val}<small>/${goal}${unit}</small></span></div>`;};
-    if(!x){el.innerHTML='<div class="empty" style="padding:14px;">栄養データがまだありません。取込タブで自動同期を設定するか、JSONを取り込んでください。</div>';}
-    else{const d=new Date(x.date+"T00:00:00");const dif=(k,unit)=>{const v=Math.round((x[k]-g[k])*10)/10;return `<span class="dif ${Math.abs(v)<=g[k]*0.05?"ok":v>0?"ov":"un"}">${v>0?"+":""}${v}${unit}</span>`;};
-      const alc=this.alcEff(x);const alcTxt=x.is_sober==null?"判定なし":x.is_sober?`○ ノンアル（推定 ${Math.max(0,alc)}g）`:`● 飲酒日（推定 ${Math.round(alc)}g ≒ ${Math.round(alc*7)}kcal）`;
-      const isYest=x.date===this.addDays(todayStr(),-1);
-      el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px;"><b style="font-size:13px;color:var(--navy)">最新の記録日：${x.date.slice(5).replace("-","/")}（${wd[d.getDay()]}）${isYest?" 昨日":x.date===todayStr()?" 今日（途中）":""}</b>${x.excluded?'<span class="nu-tag">記録漏れ扱い</span>':""}</div>
-        ${row("kcal",x.kcal,g.kcal,"")}${row("P",x.p,g.p,"g")}${row("F",x.f,g.f,"g")}${row("C",x.c,g.c,"g")}
-        <div class="mt-rem">目標との差：kcal ${dif("kcal","")}　P ${dif("p","g")}　F ${dif("f","g")}　C ${dif("c","g")}${x.fiber!=null?"　｜ 繊維 "+x.fiber+"g（目標20〜25）":""}${x.salt!=null?"　塩 "+x.salt+"g":""}</div>
-        <div class="mt-rem" style="margin-top:4px;">🍶 ${alcTxt}<span class="na-est">　暫定閾値${this.alcThreshold()}g・推定</span>${x.steps!=null?"　🚶 "+x.steps.toLocaleString()+"歩":""}${x.amWt!=null?"　⚖ 朝体重 "+x.amWt+"kg":""}</div>`;}
-    // KPI：自動反映される重要パラメータ
-    const k=document.getElementById("dietKpi");const today=todayStr();
+    const today=todayStr();const N=14;const days=[];for(let k=N-1;k>=0;k--){const d=this.addDays(today,-k);days.push({date:d,x:DB.nutrition.find(n=>n.date===d)||null});}
+    // ---- SVG：kcal 棒（目標線）＋朝体重 折れ線（右軸）＋飲酒マーク ----
+    const W=360,H=150,pl=30,pr=34,pt=14,pb=24;const bw=(W-pl-pr)/N;const kmax=Math.max(g.kcal*1.25,...days.map(d=>d.x&&d.x.kcal||0))*1.05;
+    const Yk=v=>H-pb-(v/kmax)*(H-pt-pb);const X=i=>pl+bw*(i+0.5);
+    const wts=days.filter(d=>d.x&&d.x.amWt!=null).map(d=>d.x.amWt);const wmin=wts.length?Math.min(...wts)-0.6:0,wmax=wts.length?Math.max(...wts)+0.6:1;const Yw=v=>H-pb-((v-wmin)/((wmax-wmin)||1))*(H-pt-pb);
+    let svg=`<svg class="trend-svg" viewBox="0 0 ${W} ${H}">`;
+    [0.5,1].forEach(f=>{const v=g.kcal*f;svg+=`<line x1="${pl}" y1="${Yk(v)}" x2="${W-pr}" y2="${Yk(v)}" stroke="${f===1?"#1a3a5c":"#e6e2d8"}" stroke-width="${f===1?1.4:1}" stroke-dasharray="${f===1?"5 3":"0"}"/><text x="${pl-4}" y="${Yk(v)+3.5}" text-anchor="end" font-size="8.5" fill="${f===1?"#1a3a5c":"#9aa0a8"}" font-weight="${f===1?"800":"600"}">${v}</text>`;});
+    days.forEach((d,i)=>{const x=d.x;const kc=x&&x.kcal!=null?x.kcal:null;const col=kc==null?"#e3e0d8":x.excluded?"#cfd3d8":kc>g.kcal*1.05?"#c0553a":kc<g.kcal*0.95?"#e89042":"#2f8f5f";
+      if(kc!=null)svg+=`<rect x="${X(i)-bw*0.34}" y="${Yk(kc)}" width="${bw*0.68}" height="${H-pb-Yk(kc)}" fill="${col}" rx="2"${x.excluded?' opacity=".7"':""}/>`;else svg+=`<rect x="${X(i)-bw*0.34}" y="${H-pb-3}" width="${bw*0.68}" height="3" fill="#e3e0d8" rx="1"/>`;
+      if(x&&x.is_sober===false)svg+=`<text x="${X(i)}" y="${H-pb+20}" text-anchor="middle" font-size="9">🍶</text>`;
+      if(i%2===N%2)svg+=`<text x="${X(i)}" y="${H-pb+10}" text-anchor="middle" font-size="8" fill="#9aa0a8">${d.date.slice(5).replace("-","/")}</text>`;});
+    let path="",pen=false;days.forEach((d,i)=>{if(!(d.x&&d.x.amWt!=null)){return;}path+=(pen?"L":"M")+X(i).toFixed(1)+" "+Yw(d.x.amWt).toFixed(1)+" ";pen=true;});
+    if(wts.length){svg+=`<path d="${path}" fill="none" stroke="#2f7d8c" stroke-width="2" stroke-linejoin="round"/>`;days.forEach((d,i)=>{if(!(d.x&&d.x.amWt!=null))return;svg+=`<circle cx="${X(i)}" cy="${Yw(d.x.amWt)}" r="3.2" fill="#fff" stroke="#2f7d8c" stroke-width="1.8"/>`;});
+      const last=days.filter(d=>d.x&&d.x.amWt!=null).slice(-1)[0];svg+=`<text x="${W-pr+4}" y="${Yw(last.x.amWt)+3.5}" font-size="9" font-weight="800" fill="#2f7d8c">${last.x.amWt}kg</text>`;
+      svg+=`<text x="${W-pr+4}" y="${Yw(wmax)+8}" font-size="7.5" fill="#2f7d8c">${(wmax-0.6).toFixed(1)}</text><text x="${W-pr+4}" y="${Yw(wmin)-2}" font-size="7.5" fill="#2f7d8c">${(wmin+0.6).toFixed(1)}</text>`;}
+    svg+=`<text x="${pl}" y="9" font-size="8.5" fill="#1a3a5c" font-weight="800">kcal（棒・点線＝目標${g.kcal}）</text><text x="${W-pr}" y="9" text-anchor="end" font-size="8.5" fill="#2f7d8c" font-weight="800">朝体重（線・右軸）</text></svg>`;
+    // ---- KPI ----
     const nu=[...DB.nutrition].filter(n=>n.date<=today);const last7=nu.filter(n=>n.date>this.addDays(today,-7)&&n.kcal!=null&&!n.excluded);const prev7=nu.filter(n=>n.date>this.addDays(today,-14)&&n.date<=this.addDays(today,-7)&&n.kcal!=null&&!n.excluded);
     const avg=(a,key)=>a.length?a.reduce((s2,n)=>s2+(n[key]||0),0)/a.length:null;
-    const w7=nu.filter(n=>n.amWt!=null&&n.date>this.addDays(today,-7)),wp7=nu.filter(n=>n.amWt!=null&&n.date>this.addDays(today,-14)&&n.date<=this.addDays(today,-7));const wa=avg(w7,"amWt"),wb=avg(wp7,"amWt");const wlast=nu.filter(n=>n.amWt!=null).slice(-1)[0];
+    const w7=nu.filter(n=>n.amWt!=null&&n.date>this.addDays(today,-7)),wp7=nu.filter(n=>n.amWt!=null&&n.date>this.addDays(today,-14)&&n.date<=this.addDays(today,-7));const wa=avg(w7,"amWt"),wb=avg(wp7,"amWt");
     const ws=this.weeklyStats().filter(w=>!w.excluded&&!w.ref&&w.tdee!=null);const tdee=ws.length?ws[ws.length-1].tdee:null;
     const aw=this.alcWeeks();const cw=aw.find(w=>w.key===this.weekKey(today))||{drink:0,total:0,days:0,nodata:0};
-    const steps7=avg(nu.filter(n=>n.steps!=null&&n.date>this.addDays(today,-7)),"steps");const fib7=avg(last7.filter(n=>n.fiber!=null),"fiber");
-    const kpi=(v,l,sub)=>`<div class="kpi2"><div class="v">${v}</div><div class="l">${l}</div>${sub?`<div class="s">${sub}</div>`:""}</div>`;
-    k.innerHTML=`<div style="font-size:12px;font-weight:800;color:var(--navy);margin-bottom:6px;">自動で反映される重要パラメータ</div><div class="kpi-grid">
-      ${kpi(wlast?wlast.amWt+"<small>kg</small>":"—","朝体重（最新"+(wlast?" "+wlast.date.slice(5):"")+"）",wa!=null?"7日平均 "+Math.round(wa*10)/10+"kg"+(wb!=null?"（前週比 "+(wa-wb>=0?"+":"")+(Math.round((wa-wb)*100)/100)+"kg）":""):"")}
-      ${kpi(last7.length?Math.round(avg(last7,"kcal"))+"<small>kcal</small>":"—","直近7日 平均摂取（"+last7.length+"日）",last7.length?"P"+Math.round(avg(last7,"p"))+" F"+Math.round(avg(last7,"f"))+" C"+Math.round(avg(last7,"c"))+(prev7.length?"　前週 "+Math.round(avg(prev7,"kcal"))+"kcal":""):"")}
-      ${kpi(tdee?tdee.toLocaleString()+"<small>kcal</small>":"—","推定TDEE（直近の有効週）",tdee?"目標摂取 ≒ TDEE+200〜300":"5日以上そろった週から")}
-      ${kpi(cw.drink+"<small>日</small>","今週の飲酒日（目標≤2）","推定 "+cw.total+"g・判定 "+(cw.days-cw.nodata)+"/"+cw.days+"日")}
-      ${kpi(steps7!=null?Math.round(steps7).toLocaleString():"—","歩数 7日平均","")}
-      ${kpi(fib7!=null?Math.round(fib7*10)/10+"<small>g</small>":"—","食物繊維 7日平均","目標 20〜25g")}
-    </div>`;},
+    const k7=avg(last7,"kcal");const kdif=k7!=null?Math.round(k7-g.kcal):null;
+    const kpi=(v,l,sub,cls)=>`<div class="kpi2"><div class="v ${cls||""}">${v}</div><div class="l">${l}</div>${sub?`<div class="s">${sub}</div>`:""}</div>`;
+    el.innerHTML=svg+`<div class="kpi-grid">
+      ${kpi(k7!=null?Math.round(k7)+"<small>kcal</small>":"—","7日平均摂取"+(last7.length?"（"+last7.length+"日）":""),k7!=null?`<span class="dif ${Math.abs(kdif)<=g.kcal*0.05?"ok":kdif>0?"ov":"un"}">目標${kdif>=0?"+":""}${kdif}</span>　P${Math.round(avg(last7,"p"))} F${Math.round(avg(last7,"f"))} C${Math.round(avg(last7,"c"))}`:"データ待ち")}
+      ${kpi(wa!=null?(Math.round(wa*10)/10)+"<small>kg</small>":"—","朝体重 7日平均",wa!=null&&wb!=null?`前週比 <span class="dif ${wa-wb>0.35?"ov":wa-wb<0.1?"un":"ok"}">${wa-wb>=0?"+":""}${(Math.round((wa-wb)*100)/100)}kg</span>（目標+0.2〜0.3）`:wa!=null?"前週の体重待ち":"")}
+      ${kpi(tdee?tdee.toLocaleString()+"<small>kcal</small>":"—","推定TDEE",tdee?"摂取目標 ≒ +200〜300":"5日以上そろった週から")}
+    </div>
+    <div class="mt-rem" style="margin-top:8px;">🍶 今週の飲酒 <b>${cw.drink}日</b>（目標≤2）・推定 ${cw.total}g　｜ 判定できた日 ${cw.days-cw.nodata}/${cw.days}　<span class="na-est">推定・暫定閾値${this.alcThreshold()}g</span></div>`;},
   // 新しい記録日が同期で届いたら、1回だけ自動で食事アドバイス
   maybeAutoMealAdvice(){const c=this.aiCfg();if(!c.key||c.on===false)return;const x=this.latestNutri();if(!x)return;if(c.lastDietAdvice===x.date)return;c.lastDietAdvice=x.date;localStorage.setItem(AI_KEY,JSON.stringify(c));this.mealAdvice(true);},
   mealContext(){const g=this.nutriGoal();const today=todayStr();const now=new Date();const wd=["日","月","火","水","木","金","土"];const dt=new Date(today+"T00:00:00");const M=MENU.find(m=>(m.day||"").startsWith(wd[dt.getDay()]));
