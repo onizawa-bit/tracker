@@ -278,6 +278,22 @@
   .na-cell{aspect-ratio:1;border-radius:9px;border:1px solid var(--line);background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:12px;font-weight:700;color:var(--ink);position:relative;}
   .na-cell.empty{border:none;background:none;cursor:default;}
   .na-cell.on{background:linear-gradient(135deg,#d6f0e0,#eaf7ee);border-color:#9fd8b6;}
+  .na-cell.drink{background:linear-gradient(135deg,#fde3dc,#fbeee9);border-color:#f0b8a8;}
+  .na-cell.drink .g{font-size:9.5px;font-weight:800;color:var(--down);line-height:1;margin-top:2px;}
+  .na-cell.drink .ic,.na-cell.on .ic{font-size:14px;}
+  .na-cell.nodata{background:#f1efe9;border-style:dashed;color:#b0b4b9;}
+  .na-cell.legacy{opacity:.75;}
+  .na-cell.legacy .ic{font-size:11px;color:var(--up);font-weight:800;}
+  .na-cell.manual::after{content:"✎";position:absolute;right:3px;top:2px;font-size:9px;color:var(--care);}
+  .na-legend{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:10.5px;color:var(--mute);font-weight:700;margin:8px 2px 0;}
+  .na-legend i{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:middle;margin-right:4px;border:1px solid var(--line);}
+  .na-legend i.s{background:#d6f0e0;border-color:#9fd8b6;} .na-legend i.d{background:#fde3dc;border-color:#f0b8a8;} .na-legend i.n{background:#f1efe9;border-style:dashed;}
+  .na-hero .row2{display:flex;gap:10px;margin-top:10px;}
+  .na-hero .kpi{flex:1;background:rgba(255,255,255,.14);border-radius:10px;padding:8px 10px;}
+  .na-hero .kpi .v{font-size:22px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums;}
+  .na-hero .kpi .v small{font-size:11px;font-weight:700;opacity:.9;margin-left:2px;}
+  .na-hero .kpi .l{font-size:10.5px;opacity:.9;margin-top:2px;}
+  .na-est{font-size:10.5px;color:var(--mute);font-weight:700;}
   .na-cell.on .ic{font-size:16px;}
   .na-cell.today{box-shadow:0 0 0 2px var(--orange);}
   .na-cell .dnum{font-size:10px;color:var(--mute);position:absolute;top:3px;left:5px;}
@@ -394,15 +410,18 @@
   <!-- NO-ALCOHOL -->
   <div class="view" id="view-noalc">
     <div class="na-hero" id="naHero"></div>
-    <button class="btn na-today" id="naTodayBtn" onclick="app.toggleNoAlc()"></button>
-    <div class="na-badges" id="naBadges"></div>
+    <div class="hint">🍶 判定は <b>Health Auto Export の栄養データからの推定</b>です（手入力なし）。カロミルはアルコールの熱量を kcal だけに足すので、<b>推定アルコール(g)＝{kcal −(P×4＋F×9＋C×4)＋食物繊維×2}÷7</b>。暫定閾値 <b id="alcThTxt"></b> 未満をノンアル判定。<a href="#" onclick="app.editAlcThreshold();return false;" style="color:var(--care)">閾値を変更</a>。栄養データが無い日は判定しません（灰色）。推定は外れることがあるので、日付をタップして手で上書きできます（✎）。</div>
     <div class="na-cal-head">
       <button class="na-nav" onclick="app.naMonth(-1)">‹</button>
       <span id="naMonthLabel"></span>
       <button class="na-nav" onclick="app.naMonth(1)">›</button>
     </div>
     <div class="na-cal" id="naCal"></div>
-    <div class="hint" style="margin-top:10px;">🍵 = ノンアル達成日。日付をタップでオン/オフ。連続記録を伸ばそう。</div>
+    <div class="na-legend"><span><i class="s"></i>○ ノンアル（推定）</span><span><i class="d"></i>● 飲酒日＋推定g</span><span><i class="n"></i>データなし</span><span>✎ 手動上書き</span><span style="color:var(--up)">○手＝旧・手動記録</span></div>
+    <div class="sec-t" style="margin-top:16px;">週ごとの推定（11/16〜・暫定）</div>
+    <div class="hint">目標は飲酒 <b>週1〜2日</b>。右の HDL はその週の採血値（毎週水曜）。推定アルコールの週合計と HDL の関係は推移タブ「🍶 週アルコール × HDL」で。</div>
+    <div class="wk-wrap"><table class="wk" id="alcWeekTbl"></table></div>
+    <div class="hint" style="margin-top:6px;">※ 11/16 より前の期間は記録漏れが多く、推定も信頼できないため集計対象外（カレンダーの参考表示のみ）。閾値は2週間ほどデータがたまったら「確実に飲んでいない日」の分布から較正します。</div>
   </div>
 
   <!-- LABS -->
@@ -660,6 +679,7 @@ const NUTRI_FIELDS=[{k:"kcal",n:"kcal",u:"kcal",st:"1"},{k:"p",n:"P",u:"g",st:"0
 // Health Auto Export の metric name → 内部キー（他の項目は無視）
 const HAE_MAP={dietary_energy:"kcal",protein:"p",total_fat:"f",carbohydrates:"c",fiber:"fiber",sodium:"sodium",step_count:"steps",weight_body_mass:"weight"};
 const NUTRI_CALC_FROM="2026-11-16";
+const ALC_THRESHOLD_DEFAULT=14; // 推定アルコール(g)：これ未満をノンアル判定（≒100kcal・暫定。DB.alcThreshold で上書き可）
 const SYNC_KEY="anzu_tracker_sync";
 const REST_KEY="anzu_tracker_rest";
 const CIRC_KEY="anzu_tracker_circuit"; // サーキットモード ON/OFF と、今日の各種目の最終セット時刻 // 休憩タイマー（再読み込みしても続くよう終了時刻を保存）
@@ -1455,56 +1475,64 @@ const app={
   naKey(y,m,d){return `${y}-${String(m+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;},
   naInit(){if(!this.naYM){const d=new Date(Date.now()-4*3600*1000);this.naYM=[d.getFullYear(),d.getMonth()];}},
   naMonth(delta){this.naInit();let[y,m]=this.naYM;m+=delta;if(m<0){m=11;y--;}if(m>11){m=0;y++;}this.naYM=[y,m];this.renderNoAlc();},
-  toggleNoAlc(){const t=todayStr();DB.noAlc=DB.noAlc||{};
-    const was=!!DB.noAlc[t];DB.noAlc[t]=!was;if(!DB.noAlc[t])delete DB.noAlc[t];persist();
-    this.renderNoAlc();this.toast(was?"取り消しました":"🍵 ノンアル達成！ナイス！");},
-  naToggleDay(key,future){if(future)return;DB.noAlc=DB.noAlc||{};
-    if(DB.noAlc[key])delete DB.noAlc[key];else DB.noAlc[key]=true;persist();this.renderNoAlc();},
-  naBadgeList(count){ // monthly achieved-day milestones
-    return [{n:3,l:"3日"},{n:7,l:"7日"},{n:10,l:"10日"},{n:13,l:"40%"},{n:15,l:"半月"},{n:20,l:"20日"}];},
-  renderNoAlc(){this.naInit();const[y,m]=this.naYM;
-    const dim=new Date(y,m+1,0).getDate();
-    const goal=Math.ceil(dim*0.4);
-    // count achieved in this month
-    let achieved=0;for(let d=1;d<=dim;d++){if(DB.noAlc&&DB.noAlc[this.naKey(y,m,d)])achieved++;}
-    const pct=Math.round(achieved/dim*100);
-    const goalPct=40;
-    const done=achieved>=goal;
-    const remain=Math.max(0,goal-achieved);
-    // today info
-    const t=todayStr();const todayOn=!!(DB.noAlc&&DB.noAlc[t]);
-    const nowYM=(()=>{const d=new Date(Date.now()-4*3600*1000);return d.getFullYear()===y&&d.getMonth()===m;})();
-    // hero
-    const hero=document.getElementById("naHero");
-    let msg="";
-    if(done)msg="🎉 今月の目標40%達成！最高です";
-    else if(remain<=3)msg=`あと ${remain}日 で目標達成！ラストスパート`;
-    else if(pct>=25)msg="いい調子。この調子で積み上げよう";
-    else msg="1日ずつでOK。まず1つ🍵タップ";
-    hero.className="na-hero"+(done?" achieved":"");
-    hero.innerHTML=`<div class="pct">${pct}<small>%</small></div>
-      <div class="sub">${y}年${m+1}月　ノンアル ${achieved} / ${dim}日（目標 ${goal}日＝40%）</div>
-      <div class="meter"><div class="fill" style="width:${Math.min(100,pct)}%"></div><div class="goal" style="left:${goalPct}%"></div></div>
-      <div class="goaltxt">白線＝40%目標ライン　｜　${done?"達成済み 🏅":"達成まであと "+remain+"日"}</div>
-      <div class="msg">${msg}</div>`;
-    // today button (only meaningful in current month)
-    const tb=document.getElementById("naTodayBtn");
-    if(nowYM){tb.style.display="block";tb.className="btn na-today"+(todayOn?" on":"");tb.textContent=todayOn?"✓ 今日はノンアル達成（取り消す）":"🍵 今日はノンアルだった！記録する";}
-    else{tb.style.display="none";}
-    // badges
-    const badges=this.naBadgeList(achieved);
-    document.getElementById("naBadges").innerHTML=badges.map(b=>`<div class="na-badge${achieved>=b.n?" got":""}">${achieved>=b.n?"🏅":"🔒"} ${b.l}</div>`).join("");
+  // ---- no-alcohol: 栄養データからの自動判定 ----
+  alcThreshold(){return DB.alcThreshold!=null?DB.alcThreshold:ALC_THRESHOLD_DEFAULT;},
+  // 推定アルコール(g) = {kcal − (P×4 + F×9 + C×4) + 食物繊維×2} ÷ 7。栄養が欠けている日は判定しない（null）
+  deriveAlcohol(x){if(!x)return;if(x.kcal==null||x.p==null||x.f==null||x.c==null){x.alcohol_est=null;x.is_sober=(x.alcohol_manual!=null)?x.alcohol_manual<this.alcThreshold():null;return;} // 栄養が無い日は手動値があるときだけ判定
+    const fiber=x.fiber!=null?x.fiber:0;const est=(x.kcal-(x.p*4+x.f*9+x.c*4)+fiber*2)/7;x.alcohol_est=Math.round(est*10)/10;
+    const v=(x.alcohol_manual!=null)?x.alcohol_manual:x.alcohol_est;x.is_sober=v<this.alcThreshold();},
+  deriveAllAlcohol(){let ch=false;(DB.nutrition||[]).forEach(x=>{const a=x.alcohol_est,b=x.is_sober;this.deriveAlcohol(x);if(a!==x.alcohol_est||b!==x.is_sober)ch=true;});if(ch)persist();},
+  alcEff(x){return x&&x.is_sober!=null?((x.alcohol_manual!=null)?x.alcohol_manual:Math.max(0,x.alcohol_est)):null;},
+  editAlcThreshold(){const v=prompt("ノンアル判定の閾値（推定アルコール g 未満）\n暫定 14g ≒ 100kcal。較正後に変更してください",String(this.alcThreshold()));if(v===null)return;const n=parseFloat(v);if(isNaN(n)||n<0){this.toast("数値を入れてください");return;}
+    DB.alcThreshold=n;this.deriveAllAlcohol();persist();this.renderNoAlc();this.toast(`閾値を ${n}g に変更 ✓`);},
+  // 日付タップ：推定の内訳を見せて手動上書き（空欄で推定に戻す）
+  naTapDay(key,future){if(future)return;const x=DB.nutrition.find(n=>n.date===key);
+    if(!x||x.is_sober==null){const legacy=!!(DB.noAlc&&DB.noAlc[key]);
+      if(!confirm(`${key}\n栄養データが無いので自動判定できません。${legacy?"（旧・手動記録：ノンアル）":""}\n\n飲酒量を手で入れますか？（OK→入力）`))return;
+      const v=prompt("この日の推定アルコール(g)を手入力（0＝飲んでいない）","0");if(v===null||v.trim()==="")return;const n=parseFloat(v);if(isNaN(n)){this.toast("数値を入れてください");return;}
+      const rec={date:key,alcohol_manual:n};const ex=DB.nutrition.find(n2=>n2.date===key);if(ex){ex.alcohol_manual=n;}else{DB.nutrition.push({date:key,excluded:key<NUTRI_CALC_FROM,alcohol_manual:n,alcohol_est:null,is_sober:n<this.alcThreshold()});DB.nutrition.sort((a,b)=>a.date<b.date?-1:1);}
+      const r=DB.nutrition.find(n2=>n2.date===key);if(r.kcal!=null)this.deriveAlcohol(r);else r.is_sober=n<this.alcThreshold();persist();this.renderNoAlc();this.toast("手動で記録 ✓");return;}
+    const est=x.alcohol_est;const cur=x.alcohol_manual!=null?x.alcohol_manual:"";
+    const v=prompt(`${key}　${x.is_sober?"○ ノンアル":"● 飲酒日"}（${x.alcohol_manual!=null?"手動 "+x.alcohol_manual+"g":"推定 "+Math.max(0,est)+"g"}）\n記録: ${x.kcal}kcal / P${x.p} F${x.f} C${x.c}${x.fiber!=null?" 繊維"+x.fiber:""}\nPFC計算 ${Math.round(x.p*4+x.f*9+x.c*4)}kcal → 差 ${Math.round(x.kcal-(x.p*4+x.f*9+x.c*4))}kcal${x.fiber!=null?"（繊維補正 +"+Math.round(x.fiber*2)+"）":""}\n\n手動で上書きする値を g で入力（空欄＝推定に戻す）`,cur);
+    if(v===null)return;if(v.trim()===""){delete x.alcohol_manual;}else{const n=parseFloat(v);if(isNaN(n)){this.toast("数値を入れてください");return;}x.alcohol_manual=n;}
+    this.deriveAlcohol(x);persist();this.renderNoAlc();this.toast(x.alcohol_manual!=null?"手動で上書き ✓":"推定値に戻しました");},
+  // 週集計（11/16〜）：飲酒日数・推定総量・データ日数・その週の HDL
+  alcWeeks(){const wk={};const from=this.weekKey(NUTRI_CALC_FROM);const today=todayStr();
+    DB.nutrition.forEach(x=>{if(x.date<from||x.date>today)return;const k=this.weekKey(x.date);const w=wk[k]||(wk[k]={key:k,drink:0,sober:0,nodata:0,total:0});
+      if(x.is_sober==null){w.nodata++;return;}const g=this.alcEff(x);w.total+=g;if(x.is_sober)w.sober++;else w.drink++;});
+    // 今日までの週は空でも行を出す
+    let k=from;while(k<=today){wk[k]=wk[k]||{key:k,drink:0,sober:0,nodata:0,total:0};k=this.addDays(k,7);}
+    return Object.keys(wk).sort().map(key=>{const w=wk[key];w.end=this.addDays(key,6);w.total=Math.round(w.total);
+      const lab=DB.labs.filter(l=>l.date>=key&&l.date<=w.end&&l.vals&&l.vals.HDL!=null).sort((a,b)=>a.date<b.date?1:-1)[0];w.hdl=lab?lab.vals.HDL:null;w.hdlDate=lab?lab.date:null;
+      const days=Math.min(7,Math.floor((new Date(Math.min(new Date(w.end+"T00:00:00"),new Date(today+"T00:00:00")))-new Date(key+"T00:00:00"))/86400000)+1);w.days=days;w.nodata=Math.max(0,days-w.drink-w.sober);return w;});},
+  renderAlcWeeks(){const tbl=document.getElementById("alcWeekTbl");if(!tbl)return;const rows=this.alcWeeks().reverse();
+    if(!rows.length){tbl.innerHTML='<tr><td style="text-align:center;color:var(--mute);padding:14px;">まだデータがありません</td></tr>';return;}
+    tbl.innerHTML=`<tr><th>週(月〜)</th><th>飲酒日</th><th>ノンアル</th><th>推定総量</th><th>HDL</th><th>データ</th></tr>`+rows.map(w=>{const over=w.drink>2;
+      return `<tr><td>${w.key.slice(5).replace("-","/")}〜${w.end.slice(5).replace("-","/")}</td><td style="font-weight:800;color:${over?"var(--down)":w.drink<=2&&w.days>=7?"var(--up)":"inherit"}">${w.drink}<span style="font-size:9px;color:var(--mute)"> /目標≤2</span></td><td>${w.sober}</td><td>${w.total}<span style="font-size:9px;color:var(--mute)"> g</span></td><td>${w.hdl!=null?w.hdl+'<span style="font-size:9px;color:var(--mute)"> '+w.hdlDate.slice(5)+'</span>':"—"}</td><td>${w.days-w.nodata}/${w.days}${w.nodata?'<span style="font-size:9px;color:var(--warn)"> 欠'+w.nodata+'</span>':""}</td></tr>`;}).join("");},
+  renderNoAlc(){this.naInit();this.deriveAllAlcohol();const[y,m]=this.naYM;const dim=new Date(y,m+1,0).getDate();const t=todayStr();
+    document.getElementById("alcThTxt").textContent=this.alcThreshold()+"g";
+    // 今週の KPI
+    const wks=this.alcWeeks();const cur=wks.find(w=>w.key===this.weekKey(t))||{drink:0,sober:0,total:0,days:0,nodata:0};
+    let msober=0,mdrink=0,mdata=0;for(let d=1;d<=dim;d++){const x=DB.nutrition.find(n=>n.date===this.naKey(y,m,d));if(x&&x.is_sober!=null){mdata++;if(x.is_sober)msober++;else mdrink++;}}
+    const hero=document.getElementById("naHero");const ok=cur.drink<=2;
+    hero.className="na-hero"+(ok&&cur.days>=7?" achieved":"");
+    hero.innerHTML=`<div class="sub" style="font-weight:800;">今週（${this.weekKey(t).slice(5).replace("-","/")}〜）　<span class="na-est" style="color:#fff;opacity:.85">推定・暫定閾値${this.alcThreshold()}g</span></div>
+      <div class="row2"><div class="kpi"><div class="v">${cur.drink}<small>日</small></div><div class="l">飲酒日（目標 週1〜2）</div></div><div class="kpi"><div class="v">${cur.total}<small>g</small></div><div class="l">週の推定アルコール総量</div></div><div class="kpi"><div class="v">${cur.days-cur.nodata}<small>/${cur.days}</small></div><div class="l">データのある日</div></div></div>
+      <div class="msg">${cur.drink===0?"ここまで飲酒日ゼロ。":cur.drink<=2?"週1〜2日の範囲内。":"今週はすでに目標を超えています。残りはノンアルで。"}　${y}年${m+1}月：ノンアル ${msober}日／飲酒 ${mdrink}日（判定できた ${mdata}日）</div>`;
+    const tb=document.getElementById("naTodayBtn");if(tb)tb.style.display="none";const bd=document.getElementById("naBadges");if(bd)bd.style.display="none";
     // calendar
     document.getElementById("naMonthLabel").textContent=`${y}年 ${m+1}月`;
-    const first=new Date(y,m,1).getDay();
-    const dows=["日","月","火","水","木","金","土"];
+    const first=new Date(y,m,1).getDay();const dows=["日","月","火","水","木","金","土"];
     let html=dows.map(d=>`<div class="na-dow">${d}</div>`).join("");
     for(let i=0;i<first;i++)html+='<div class="na-cell empty"></div>';
-    for(let d=1;d<=dim;d++){const key=this.naKey(y,m,d);const on=!!(DB.noAlc&&DB.noAlc[key]);
-      const isToday=(key===t);const future=key>t;
-      html+=`<div class="na-cell${on?" on":""}${isToday?" today":""}${future?" future":""}" onclick="app.naToggleDay('${key}',${future})">
-        <span class="dnum">${d}</span>${on?'<span class="ic">🍵</span>':''}</div>`;}
-    document.getElementById("naCal").innerHTML=html;},
+    for(let d=1;d<=dim;d++){const key=this.naKey(y,m,d);const isToday=(key===t);const future=key>t;const x=DB.nutrition.find(n=>n.date===key);const legacy=!!(DB.noAlc&&DB.noAlc[key]);
+      let cls="",ic="";
+      if(future){cls="future";}
+      else if(x&&x.is_sober!=null){const g=this.alcEff(x);cls=(x.is_sober?"on":"drink")+(x.alcohol_manual!=null?" manual":"");ic=x.is_sober?'<span class="ic">○</span>':`<span class="ic">●</span><span class="g">${Math.round(g)}g</span>`;}
+      else if(legacy){cls="legacy";ic='<span class="ic">○手</span>';}
+      else{cls="nodata";}
+      html+=`<div class="na-cell ${cls}${isToday?" today":""}" onclick="app.naTapDay('${key}',${future})"><span class="dnum">${d}</span>${ic}</div>`;}
+    document.getElementById("naCal").innerHTML=html;this.renderAlcWeeks();},
   renderLabInputs(){
     document.getElementById("labKey").innerHTML=LAB_KEY.map(l=>this.labFld(l)).join("");
     document.getElementById("labDetail").innerHTML=LAB_DETAIL.map(l=>this.labFld(l)).join("");},
@@ -1695,7 +1723,7 @@ const app={
       const keys=["kcal","p","f","c","fiber","salt","steps","amWt","amWtTime","amWtSrc"].filter(k=>r[k]!=null);if(!keys.length&&r.excluded==null)return;
       let ex=DB.nutrition.find(x=>x.date===r.date);
       if(!ex){ex={date:r.date,excluded:r.date<NUTRI_CALC_FROM};DB.nutrition.push(ex);}
-      keys.forEach(k=>ex[k]=r[k]);if(r.excluded!=null)ex.excluded=!!r.excluded;
+      keys.forEach(k=>ex[k]=r[k]);if(r.excluded!=null)ex.excluded=!!r.excluded;this.deriveAlcohol(ex);
       cnt.days++;cnt.dates.push(r.date);if(r.kcal!=null)cnt.kcal++;if(r.steps!=null)cnt.steps++;if(r.amWt!=null)cnt.amWt++;});
     DB.nutrition.sort((a,b)=>a.date<b.date?-1:1);return cnt;},
   nutriImportHtml(results){const all=results.filter(Boolean);const days=[...new Set(all.flatMap(r=>r.dates))].sort();const sum=k=>all.reduce((a,r)=>a+r[k],0);
@@ -1920,13 +1948,35 @@ const app={
         ["── 安全性 ──",[["Ht","ヘマトクリット"],["Hb","血色素"],["HDL","HDL"],["LDL","LDL"],["TG","中性脂肪"],["CK","CK"],["eGFR","eGFR"],["Cr","クレアチニン"],["cysC","シスタチンC"],["BUN","尿素窒素"],["Plt","血小板"],["WBC","白血球"]]],
         ["── 実測サイズ ──",[["ib_waist","📏腹囲"],["ib_chest","胸囲"],["ib_shoulder","肩周り"],["ib_armL","上腕(左)"],["ib_armR","上腕(右)"],["ib_thigh","太もも"],["ib_neck","首"]]],
         ["── InBody ──",[["ib_wt","体重"],["ib_smm","骨格筋量"],["ib_mm","筋肉量"],["ib_fat","体脂肪量"],["ib_pbf","体脂肪率"],["ib_tbw","体水分量"]]],
-        ["── 栄養・TDEE ──",[["nu_wk_kcal","🍽 週平均kcal"],["nu_wk_wt","⚖ 朝体重 週平均"],["nu_tdee","🔥 推定TDEE(週)"],["nu_kcal","kcal(日次)"],["nu_fiber","食物繊維(日次)"],["nu_steps","歩数(日次)"],["nu_amWt","朝体重(日次)"],["nu_p","タンパク質(日次)"],["nu_f","脂質(日次)"],["nu_c","炭水化物(日次)"],["nu_salt","食塩(日次)"]]],
+        ["── 栄養・TDEE ──",[["alc_hdl","🍶 週アルコール × HDL"],["nu_wk_kcal","🍽 週平均kcal"],["nu_wk_wt","⚖ 朝体重 週平均"],["nu_tdee","🔥 推定TDEE(週)"],["nu_kcal","kcal(日次)"],["nu_fiber","食物繊維(日次)"],["nu_steps","歩数(日次)"],["nu_amWt","朝体重(日次)"],["nu_p","タンパク質(日次)"],["nu_f","脂質(日次)"],["nu_c","炭水化物(日次)"],["nu_salt","食塩(日次)"]]],
         ["── トレMAX ──",MENU.flatMap(m=>m.ex.concat(m.off||[])).concat(Object.values(DB.customEx||{}).flat()).filter((e,i,a)=>a.findIndex(x=>x.n===e.n)===i).map(e=>["tr_"+e.n,e.n.replace("★","")])]];
       groups.forEach(([label,items])=>{const og=document.createElement("optgroup");og.label=label;
         items.forEach(([v,t])=>{const o=document.createElement("option");o.value=v;o.textContent=t;og.appendChild(o);});sel.appendChild(og);});
       sel.value="tT";sel.onchange=()=>this.draw(sel.value);}
     this.draw(sel.value||"tT");this.renderWeekly();},
+  // 週の推定アルコール総量（左軸・棒）と、その週の HDL（右軸・折れ線）。11/16 以降
+  drawAlcHdl(){const svg=document.getElementById("graph"),note=document.getElementById("graphNote");const ws=this.alcWeeks();
+    if(!ws.length){svg.innerHTML=`<text x="310" y="150" text-anchor="middle" fill="#9aa0a8" font-size="15">記録がありません</text>`;note.textContent="";return;}
+    const W=620,H=300,pl=48,pr=48,pt=30,pb=42;const n=ws.length;const bw=(W-pl-pr)/n;
+    const gmax=Math.max(100,...ws.map(w=>w.total))*1.15;const hd=ws.filter(w=>w.hdl!=null).map(w=>w.hdl);const hmin=Math.min(40,...hd)-5,hmax=Math.max(60,...hd)+5;
+    const X=i=>pl+bw*(i+0.5);const Yg=v=>H-pb-(v/gmax)*(H-pt-pb);const Yh=v=>H-pb-((v-hmin)/((hmax-hmin)||1))*(H-pt-pb);
+    let g="";
+    for(let k=0;k<=3;k++){const yy=pt+(H-pt-pb)*k/3;g+=`<line x1="${pl}" y1="${yy}" x2="${W-pr}" y2="${yy}" stroke="#f0ede5"/><text x="${pl-6}" y="${yy+4}" text-anchor="end" font-size="9" fill="#c46a1f">${Math.round(gmax*(1-k/3))}</text><text x="${W-pr+6}" y="${yy+4}" font-size="9" fill="#2f7d8c">${(hmax-(hmax-hmin)*k/3).toFixed(0)}</text>`;}
+    // HDL 基準線 40
+    if(hmin<40&&hmax>40){const y40=Yh(40);g+=`<line x1="${pl}" y1="${y40}" x2="${W-pr}" y2="${y40}" stroke="#2f7d8c" stroke-width="1" stroke-dasharray="4 3" opacity=".6"/><text x="${W-pr-2}" y="${y40-4}" text-anchor="end" font-size="8.5" fill="#2f7d8c">HDL 40</text>`;}
+    ws.forEach((w,i)=>{const x=X(i);const partial=w.days<7;
+      g+=`<rect x="${x-bw*0.32}" y="${Yg(w.total)}" width="${bw*0.64}" height="${H-pb-Yg(w.total)}" fill="#e8b48c" opacity="${partial?0.5:0.9}" rx="3"/><text x="${x}" y="${Yg(w.total)-5}" text-anchor="middle" font-size="9" font-weight="700" fill="#c46a1f">${w.total}g${partial?"*":""}</text>`;
+      if(w.drink)g+=`<text x="${x}" y="${H-pb-4}" text-anchor="middle" font-size="8.5" fill="#c0553a">${w.drink}日</text>`;
+      g+=`<text x="${x}" y="${H-pb+16}" text-anchor="middle" font-size="8" fill="#9aa0a8">${w.key.slice(5)}</text>`;});
+    let path="",pen=false;ws.forEach((w,i)=>{if(w.hdl==null){return;}path+=(pen?"L":"M")+X(i).toFixed(1)+" "+Yh(w.hdl).toFixed(1)+" ";pen=true;});
+    g+=`<path d="${path}" fill="none" stroke="#2f7d8c" stroke-width="2.5" stroke-linejoin="round"/>`;
+    ws.forEach((w,i)=>{if(w.hdl==null)return;g+=`<circle cx="${X(i)}" cy="${Yh(w.hdl)}" r="4.5" fill="#fff" stroke="#2f7d8c" stroke-width="2.2"/><text x="${X(i)}" y="${Yh(w.hdl)-9}" text-anchor="middle" font-size="10" font-weight="800" fill="#1a3a5c">${w.hdl}</text>`;});
+    g+=`<text x="${pl}" y="16" font-size="11" font-weight="800" fill="#1a3a5c">🍶 週の推定アルコール総量 (g・棒・左軸) × HDL (mg/dL・線・右軸)</text>`;
+    svg.innerHTML=g;
+    const pairs=ws.filter(w=>w.hdl!=null&&w.days>=7);
+    note.textContent=`推定・暫定閾値${this.alcThreshold()}g。*＝進行中の週。棒の下の赤字＝飲酒日数。狙いは「週○gを超えるとHDLが落ちる」本人固有の境目を出すこと（${pairs.length?pairs.length+"週分の対応あり":"対応データはまだなし。水曜の採血がたまると線が伸びます"}）。`;},
   draw(key){
+    if(key==="alc_hdl"){this.drawAlcHdl();return;}
     let pts=[],range=null,alert=null,unit="",title="",alertLabel="閾値",extraNote="";
     if(key.startsWith("nu_")){const g=this.nutriGoal();const f=key.slice(3);
       if(f==="wk_kcal"||f==="wk_wt"||f==="tdee"){const ws=this.weeklyStats();
