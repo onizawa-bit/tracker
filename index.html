@@ -321,6 +321,23 @@
   .hitem .hex{font-size:12px;margin-top:5px;}
   .hitem .hex b{color:var(--navy);}
   /* nutrition */
+  .mt-row{display:grid;grid-template-columns:34px 1fr 92px;gap:8px;align-items:center;margin:6px 0;font-size:12px;}
+  .mt-row .k{font-weight:800;color:var(--navy);}
+  .mt-row .bar{height:10px;background:#eee9df;border-radius:6px;overflow:hidden;position:relative;}
+  .mt-row .bar i{display:block;height:100%;background:var(--up);border-radius:6px;}
+  .mt-row .bar i.over{background:var(--down);} .mt-row .bar i.low{background:var(--orange);}
+  .mt-row .v{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;}
+  .mt-row .v small{color:var(--mute);font-weight:600;}
+  .mt-rem{font-size:11.5px;color:var(--ink);margin-top:6px;font-weight:700;}
+  .meal{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 11px;margin-bottom:6px;display:flex;gap:8px;align-items:flex-start;}
+  .meal .slot{flex:none;font-size:10px;font-weight:800;padding:2px 6px;border-radius:6px;background:#eee9df;color:var(--navy);margin-top:2px;}
+  .meal .b{flex:1;min-width:0;}
+  .meal .n{font-size:13px;font-weight:800;}
+  .meal .m{font-size:11px;color:var(--mute);font-variant-numeric:tabular-nums;margin-top:2px;}
+  .meal .m b{color:var(--ink);}
+  .meal .it{font-size:10.5px;color:var(--mute);margin-top:2px;}
+  .meal .del{flex:none;}
+  .chips .chip.sm{padding:5px 11px;font-size:12px;}
   .nu-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;}
   .nu-grid .labfld input{padding:8px 4px;font-size:14px;}
   .nu-row{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin-bottom:6px;}
@@ -376,7 +393,7 @@
     <button data-tab="labs">血液</button>
     <button data-tab="med">薬剤</button>
     <button data-tab="inbody">InBody</button>
-    <button data-tab="nutri">栄養</button>
+    <button data-tab="nutri">食事</button>
     <button data-tab="import">取込</button>
     <button data-tab="graph">推移</button>
     <button data-tab="hist">履歴</button>
@@ -551,7 +568,24 @@
 
   <!-- NUTRI -->
   <div class="view" id="view-nutri">
-    <div class="sec-t">🍽 栄養・歩数を手入力</div>
+    <div class="sec-t">🍽 今日の食事 <span id="mealGoalTxt" style="font-size:10.5px;color:var(--mute);font-weight:700;"></span></div>
+    <input type="date" class="datein" id="mealDate" onchange="app.renderMeals()">
+    <div class="card" id="mealTotals"></div>
+    <div class="card">
+      <textarea id="mealText" rows="2" placeholder="食べたものを書く　例：鶏むね肉200g、白米250g、味噌汁、納豆1パック"></textarea>
+      <div class="chips" id="mealSlot" style="margin:8px 0;"></div>
+      <div style="display:flex;gap:8px;"><label class="filebtn" style="flex:1;padding:11px 6px;font-size:13px;" id="mealPhotoBtn">📷 写真<input type="file" accept="image/*" id="mealPhoto" onchange="app.mealPhotoPicked(this.files)"></label><button class="btn primary" style="flex:2;" onclick="app.mealEstimate()">🤖 AIで栄養を推定して追加</button></div>
+      <div class="sync-st" id="mealStatus"></div>
+      <details style="margin-top:6px;"><summary>手入力で追加（kcal・P・F・C を直接）</summary>
+        <input class="sync-in" id="mm-name" placeholder="内容（例：プロテイン1杯）" style="margin:6px 0;">
+        <div class="nu-grid"><div class="labfld"><label>kcal</label><input type="number" inputmode="decimal" id="mm-kcal"></div><div class="labfld"><label>P g</label><input type="number" inputmode="decimal" id="mm-p"></div><div class="labfld"><label>F g</label><input type="number" inputmode="decimal" id="mm-f"></div><div class="labfld"><label>C g</label><input type="number" inputmode="decimal" id="mm-c"></div></div>
+        <button class="btn ghost" style="margin-top:8px;" onclick="app.addMealManual()">追加</button></details>
+    </div>
+    <div id="mealList"></div>
+    <button class="btn" style="background:var(--navy);color:#fff;margin-top:4px;" onclick="app.mealAdvice(false)">🤖 今日の食事アドバイス</button>
+    <div class="hint" style="margin-top:8px;">AI 推定は日本食品標準成分表ベースの目安です。カロミル（Health Auto Export）の日次合計が届いた日はそちらを正とし、ここで入れた食事は参考になります。カロミルを使わない日は、ここの合計がその日の栄養記録になります。</div>
+
+    <div class="sec-t" style="margin-top:18px;">日ごとの合計を手入力（栄養・歩数・朝体重）</div>
     <input type="date" class="datein" id="nutriDate">
     <div class="card">
       <div class="nu-grid" id="nutriFields"></div>
@@ -679,7 +713,21 @@ const NUTRI_FIELDS=[{k:"kcal",n:"kcal",u:"kcal",st:"1"},{k:"p",n:"P",u:"g",st:"0
 // Health Auto Export の metric name → 内部キー（他の項目は無視）
 const HAE_MAP={dietary_energy:"kcal",protein:"p",total_fat:"f",carbohydrates:"c",fiber:"fiber",sodium:"sodium",step_count:"steps",weight_body_mass:"weight"};
 const NUTRI_CALC_FROM="2026-11-16";
-const ALC_THRESHOLD_DEFAULT=14; // 推定アルコール(g)：これ未満をノンアル判定（≒100kcal・暫定。DB.alcThreshold で上書き可）
+const ALC_THRESHOLD_DEFAULT=14;
+const MEAL_SLOTS=["朝","昼","夜","間食"];
+const MEAL_SCHEMA={type:"object",additionalProperties:false,required:["name","items","kcal","p","f","c","fiber","salt","confidence","note"],properties:{
+  name:{type:"string",description:"この食事の短い名前（例：鶏むね＋白米＋味噌汁）"},
+  items:{type:"array",items:{type:"object",additionalProperties:false,required:["name","amount","kcal","p","f","c"],properties:{name:{type:"string"},amount:{type:"string"},kcal:{type:"number"},p:{type:"number"},f:{type:"number"},c:{type:"number"}}}},
+  kcal:{type:"number"},p:{type:"number"},f:{type:"number"},c:{type:"number"},fiber:{type:"number"},salt:{type:"number",description:"食塩相当量 g"},
+  confidence:{type:"string",enum:["high","mid","low"]},note:{type:"string",description:"分量の仮定や不確かさを一言"}}};
+const MEAL_SYSTEM=`あなたは管理栄養士です。日本の一般的な食品・外食・コンビニ商品の栄養値（日本食品標準成分表2020年版八訂の水準）に基づき、文章や写真から1食分の栄養を推定します。
+分量が書かれていなければ日本の標準的な1人前を仮定し、note に仮定を書く。写真なら皿の大きさや量感から推定する。
+タンパク質 p・脂質 f・炭水化物 c・食物繊維 fiber は g、salt は食塩相当量 g。kcal は合計。items に食品ごとの内訳。数値は整数か小数1桁。
+不確かなときは confidence を mid か low にする。推定できない内容（食品でない等）は kcal 0 で note に理由を書く。`;
+const MEAL_ADVICE_SYSTEM=`あなたは日本語で答えるスポーツ栄養の専門家です。相手はテストステロン補充療法中の成人男性で、フィジーク大会直後の増量期（目標 +0.2〜0.3kg/週）。最優先は背中と肩の発達。
+目標は 1日 2200kcal、P140g・F50g・C298g（脂質は外因性テストステロンがある間は下限50gでよい、という本人の判断）。食物繊維は段階的に20〜25g、飲酒は週1〜2日まで。
+回答ルール：2文以内、全角100字以内。残りの kcal・P・F・C と時間帯から「次に何をどれだけ食べるか」を具体的な食品と量で。前置き・絵文字なし。与えられた記録だけから判断する。
+超過しているときは、無理に削らず翌日で調整する前提で一言。トレーニング日はトレ前後の炭水化物とタンパク質を優先。`; // 推定アルコール(g)：これ未満をノンアル判定（≒100kcal・暫定。DB.alcThreshold で上書き可）
 const SYNC_KEY="anzu_tracker_sync";
 const REST_KEY="anzu_tracker_rest";
 const CIRC_KEY="anzu_tracker_circuit"; // サーキットモード ON/OFF と、今日の各種目の最終セット時刻 // 休憩タイマー（再読み込みしても続くよう終了時刻を保存）
@@ -756,6 +804,7 @@ if(DB&&!DB.procedures)DB.procedures=[];
 if(DB&&!DB.noAlc)DB.noAlc={};
 if(DB&&!DB.punct)DB.punct={};
 if(DB&&!DB.nutrition)DB.nutrition=[]; // 栄養・歩数・朝体重（Health Auto Export／手入力）
+if(DB&&!DB.meals)DB.meals=[]; // 食事タブで追加した食事（AI推定／手入力）
 if(DB&&!DB.weekExcl)DB.weekExcl={"2026-11-09":true}; // 週単位の除外（11/9〜の週＝カーボアップ・大会で未記録4日）
 // 一度だけ：7/13のクールスカルプティングを登録（既存ユーザー向け）
 if(DB&&DB.procedures&&!DB._csAdded){
@@ -1206,7 +1255,7 @@ if(DB&&DB.meds&&DB.labs&&DB.inbody&&!DB._data1104Added){
   DB._data1104Added=true;localStorage.setItem("anzu_tracker_v1",JSON.stringify(DB));
 }
 if(!DB){
-  DB={training:[],labs:[],meds:[],inbody:[],ongoing:[],customEx:{},procedures:[],noAlc:{},cond:{},punct:{},nutrition:[],weekExcl:{"2026-11-09":true},seeded:true};
+  DB={training:[],labs:[],meds:[],inbody:[],ongoing:[],customEx:{},procedures:[],noAlc:{},cond:{},punct:{},nutrition:[],weekExcl:{"2026-11-09":true},meals:[],seeded:true};
   // seed labs
   const L=[
     ["2026-05-13",{tT:794.4,fT:13.2,E2:28.7,Ht:47.2,Hb:14.8,HDL:77,eGFR:78.3,PRL:10.3,LH:3.9,FSH:3.2,LDL:117,TG:48,AST:20,ALT:14,CK:178,Cr:0.86,WBC:2910,RBC:509,UA:6.4,Na:140}],
@@ -1249,7 +1298,7 @@ if(!DB){
 const todayStr=()=>{const d=new Date(Date.now()-4*3600*1000);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
 const jpDate=()=>{const d=new Date(Date.now()-4*3600*1000);const w=["日","月","火","水","木","金","土"][d.getDay()];return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日（${w}）`;};
 document.getElementById("today").textContent=jpDate();
-["labDate","medDate","ibDate","procDate","nutriDate"].forEach(id=>{const e=document.getElementById(id);if(e)e.value=todayStr();});
+["labDate","medDate","ibDate","procDate","nutriDate","mealDate"].forEach(id=>{const e=document.getElementById(id);if(e)e.value=todayStr();});
 
 // ================= APP =================
 const app={
@@ -1620,7 +1669,7 @@ const app={
     catch(e){box.innerHTML='<div class="hint" style="color:var(--warn)">形式が読み取れません。</div>';return;}
     if(!obj||typeof obj!=="object"||!("training" in obj||"labs" in obj)){box.innerHTML='<div class="hint" style="color:var(--warn)">バックアップ形式ではないようです。</div>';return;}
     if(!confirm("現在のデータを、この内容で置き換えます。よろしいですか？"))return;
-    DB=Object.assign({training:[],labs:[],meds:[],inbody:[],ongoing:[],customEx:{},procedures:[],noAlc:{},cond:{},punct:{},nutrition:[],weekExcl:{}},obj);
+    DB=Object.assign({training:[],labs:[],meds:[],inbody:[],ongoing:[],customEx:{},procedures:[],noAlc:{},cond:{},punct:{},nutrition:[],weekExcl:{},meals:[]},obj);
     persist();document.getElementById("restoreText").value="";
     box.innerHTML='<div class="feedback" style="background:#e8f2ec;border-color:#bfe0cf;color:#1e5a3a;">復元しました ✓ 各タブでご確認ください。</div>';
     this.toast("復元しました ✓");
@@ -1723,7 +1772,7 @@ const app={
       const keys=["kcal","p","f","c","fiber","salt","steps","amWt","amWtTime","amWtSrc"].filter(k=>r[k]!=null);if(!keys.length&&r.excluded==null)return;
       let ex=DB.nutrition.find(x=>x.date===r.date);
       if(!ex){ex={date:r.date,excluded:r.date<NUTRI_CALC_FROM};DB.nutrition.push(ex);}
-      keys.forEach(k=>ex[k]=r[k]);if(r.excluded!=null)ex.excluded=!!r.excluded;this.deriveAlcohol(ex);
+      keys.forEach(k=>ex[k]=r[k]);if(r.kcal!=null)ex.src=r.src||"import";if(r.excluded!=null)ex.excluded=!!r.excluded;this.deriveAlcohol(ex);
       cnt.days++;cnt.dates.push(r.date);if(r.kcal!=null)cnt.kcal++;if(r.steps!=null)cnt.steps++;if(r.amWt!=null)cnt.amWt++;});
     DB.nutrition.sort((a,b)=>a.date<b.date?-1:1);return cnt;},
   nutriImportHtml(results){const all=results.filter(Boolean);const days=[...new Set(all.flatMap(r=>r.dates))].sort();const sum=k=>all.reduce((a,r)=>a+r[k],0);
@@ -1754,7 +1803,7 @@ const app={
   delNutri(d){if(!confirm(d+" の栄養記録を削除しますか？"))return;DB.nutrition=DB.nutrition.filter(x=>x.date!==d);persist();this.renderNutri();},
   toggleNutriExcl(d){const x=DB.nutrition.find(y=>y.date===d);if(!x)return;x.excluded=!x.excluded;persist();this.renderNutri();},
   nutriShowAll:false,
-  renderNutri(){this.renderNutriInputs();const g=this.nutriGoal();const gt=document.getElementById("nutriGoalTxt");if(gt)gt.textContent=`目標 ${g.kcal}kcal / P${g.p}・F${g.f}・C${g.c}`;
+  renderNutri(){this.renderMeals();this.renderNutriInputs();const g=this.nutriGoal();const gt=document.getElementById("nutriGoalTxt");if(gt)gt.textContent=`目標 ${g.kcal}kcal / P${g.p}・F${g.f}・C${g.c}`;
     const el=document.getElementById("nutriList");if(!el)return;
     const cut=new Date(Date.now()-4*3600*1000);cut.setDate(cut.getDate()-30);const cutS=cut.getFullYear()+"-"+String(cut.getMonth()+1).padStart(2,"0")+"-"+String(cut.getDate()).padStart(2,"0");
     const all=[...DB.nutrition].reverse();const s=this.nutriShowAll?all:all.filter(x=>x.date>=cutS);
@@ -1872,19 +1921,92 @@ const app={
     try{const txt=await this.aiCall(this.aiContext(ex,this.partIdx));this.showAiPop("🤖 "+name,txt||"（今回はアドバイスなし）");}
     catch(e){this.showAiPop("🤖 "+name,"アドバイス取得エラー："+e.message,"err");}},
   // Messages API をブラウザから直接呼ぶ（APIキーは端末内のみ）。1文なので非ストリーミング
-  async aiCall(userText){const c=this.aiCfg();if(!c.key)throw new Error("APIキー未設定");
+  async aiCall(userText,opts){opts=opts||{};const c=this.aiCfg();if(!c.key)throw new Error("APIキー未設定");
     const ctl=new AbortController();const tm=setTimeout(()=>ctl.abort(),30000);
     let res,data;
     try{res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",signal:ctl.signal,headers:{
         "content-type":"application/json","x-api-key":c.key,"anthropic-version":"2026-10-21",
         "anthropic-dangerous-direct-browser-access":"true","anthropic-beta":"server-side-fallback-2026-07-01"},
-      body:JSON.stringify({model:AI_MODEL,max_tokens:4000,output_config:{effort:"low"},fallbacks:"default",system:AI_SYSTEM,messages:[{role:"user",content:userText}]})});}
+      body:JSON.stringify(Object.assign({model:AI_MODEL,max_tokens:opts.maxTokens||4000,output_config:Object.assign({effort:opts.effort||"low"},opts.schema?{format:{type:"json_schema",schema:opts.schema}}:{}),fallbacks:"default",system:opts.system||AI_SYSTEM,messages:[{role:"user",content:opts.content||userText}]}))});}
     catch(e){clearTimeout(tm);throw new Error(e.name==="AbortError"?"応答がありません（タイムアウト）":"通信できません（ネット接続を確認）");}
     clearTimeout(tm);
     try{data=await res.json();}catch(e){throw new Error("HTTP "+res.status);}
     if(!res.ok){const m=(data&&data.error&&data.error.message)||("HTTP "+res.status);throw new Error(res.status===401?"APIキーが無効です":res.status===429?"混み合っています。少し待って再試行":res.status===400?"リクエスト不正："+m:m);}
     if(data.stop_reason==="refusal")return "";
     return (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("").trim().replace(/^「|」$/g,"");},
+  // ---- meals (食事タブ：AI推定／手入力) ----
+  mealDate(){const d=document.getElementById("mealDate");return (d&&d.value)||todayStr();},
+  mealsFor(date){return (DB.meals||[]).filter(m=>m.date===date).sort((a,b)=>(a.ts||0)-(b.ts||0));},
+  mealTotals(date){const t={kcal:0,p:0,f:0,c:0,fiber:0,salt:0,n:0};this.mealsFor(date).forEach(m=>{["kcal","p","f","c","fiber","salt"].forEach(k=>{t[k]+=Number(m[k])||0;});t.n++;});["p","f","c","fiber","salt"].forEach(k=>t[k]=Math.round(t[k]*10)/10);t.kcal=Math.round(t.kcal);return t;},
+  // 食事の合計をその日の栄養記録へ（カロミル等の日次合計があればそちらを正とし、触らない）
+  syncMealsToNutrition(date){const t=this.mealTotals(date);let x=DB.nutrition.find(n=>n.date===date);
+    if(t.n){if(!x){x={date,excluded:date<NUTRI_CALC_FROM};DB.nutrition.push(x);DB.nutrition.sort((a,b)=>a.date<b.date?-1:1);}
+      if(x.kcal==null||x.src==="meals"){x.kcal=t.kcal;x.p=t.p;x.f=t.f;x.c=t.c;x.fiber=t.fiber;x.salt=t.salt;x.src="meals";if(date>=NUTRI_CALC_FROM)x.excluded=false;this.deriveAlcohol(x);}}
+    else if(x&&x.src==="meals"){["kcal","p","f","c","fiber","salt","src"].forEach(k=>delete x[k]);this.deriveAlcohol(x);
+      if(!["steps","amWt","alcohol_manual"].some(k=>x[k]!=null))DB.nutrition=DB.nutrition.filter(n=>n!==x);}
+    persist();},
+  mealSlotDefault(){const h=new Date().getHours();return h<10?"朝":h<15?"昼":h<21?"夜":"間食";},
+  renderMeals(){const el=document.getElementById("mealTotals");if(!el)return;const d=document.getElementById("mealDate");if(d&&!d.value)d.value=todayStr();const date=this.mealDate();
+    const g=this.nutriGoal();const gt=document.getElementById("mealGoalTxt");if(gt)gt.textContent=`目標 ${g.kcal}kcal / P${g.p}・F${g.f}・C${g.c}`;
+    const sl=document.getElementById("mealSlot");if(sl&&!sl.children.length){this._mealSlot=this.mealSlotDefault();sl.innerHTML=MEAL_SLOTS.map(x=>`<div class="chip sm${x===this._mealSlot?" on":""}" onclick="app._mealSlot='${x}';app.renderMeals()">${x}</div>`).join("");}
+    else if(sl){[...sl.children].forEach(c=>c.classList.toggle("on",c.textContent===this._mealSlot));}
+    const t=this.mealTotals(date);const rec=DB.nutrition.find(n=>n.date===date);const official=rec&&rec.kcal!=null&&rec.src!=="meals";
+    const row=(k,label,val,goal,unit)=>{const pct=goal?Math.min(100,val/goal*100):0;const over=val>goal*1.05;const low=val<goal*0.5;return `<div class="mt-row"><span class="k">${label}</span><div class="bar"><i class="${over?"over":low?"low":""}" style="width:${pct}%"></i></div><span class="v">${val}<small>/${goal}${unit}</small></span></div>`;};
+    const rem=k=>Math.round((g[k]-t[k])*10)/10;
+    el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:baseline;"><b style="font-size:13px;color:var(--navy)">${date===todayStr()?"今日":date.slice(5).replace("-","/")} の合計（食事 ${t.n}件）</b>${official?'<span class="na-est">※この日はカロミルの日次合計 '+rec.kcal+'kcal を正として集計</span>':""}</div>
+      ${row("kcal","kcal",t.kcal,g.kcal,"")}${row("p","P",t.p,g.p,"g")}${row("f","F",t.f,g.f,"g")}${row("c","C",t.c,g.c,"g")}
+      <div class="mt-rem">残り：${rem("kcal")>=0?rem("kcal")+" kcal":"超過 "+(-rem("kcal"))+" kcal"}　P ${rem("p")}g　F ${rem("f")}g　C ${rem("c")}g${t.fiber?"　｜ 繊維 "+t.fiber+"g・塩 "+t.salt+"g":""}</div>`;
+    const list=document.getElementById("mealList");const ms=this.mealsFor(date);
+    list.innerHTML=ms.length?ms.map(m=>`<div class="meal"><span class="slot">${m.slot||"-"}</span><div class="b"><div class="n">${m.name}${m.conf&&m.conf!=="high"?`<span class="nu-tag" style="background:#fff3e0;color:var(--orange-d)">推定${m.conf==="low"?"低":"中"}</span>`:""}</div>
+      <div class="m"><b>${Math.round(m.kcal)}</b>kcal　P<b>${m.p}</b> F<b>${m.f}</b> C<b>${m.c}</b>${m.fiber!=null?" 繊維"+m.fiber:""}${m.salt!=null?" 塩"+m.salt:""}${m.src==="manual"?"　手入力":""}</div>
+      ${m.items&&m.items.length?`<div class="it">${m.items.map(i=>i.name+(i.amount?" "+i.amount:"")+" "+Math.round(i.kcal)+"kcal").join("・")}${m.note?"　／ "+m.note:""}</div>`:(m.note?`<div class="it">${m.note}</div>`:"")}</div>
+      <button class="del" onclick="app.delMeal('${m.id}')">×</button></div>`).join(""):'<div class="empty" style="padding:14px;">この日の食事はまだありません。上の欄に食べたものを書くか、写真を選んで「AIで推定して追加」</div>';},
+  mealPhotoPicked(files){const f=files&&files[0];if(!f)return;const st=document.getElementById("mealStatus");st.textContent="写真を読み込み中…";st.className="sync-st";
+    const img=new Image();const url=URL.createObjectURL(f);img.onload=()=>{const max=1280;let w=img.width,h=img.height;const sc=Math.min(1,max/Math.max(w,h));w=Math.round(w*sc);h=Math.round(h*sc);
+      const cv=document.createElement("canvas");cv.width=w;cv.height=h;cv.getContext("2d").drawImage(img,0,0,w,h);URL.revokeObjectURL(url);
+      this._mealImg=cv.toDataURL("image/jpeg",0.8).split(",")[1];document.getElementById("mealPhotoBtn").firstChild.textContent="📷 写真OK";st.textContent="写真を添付しました。必要なら補足を書いて「AIで推定して追加」";st.className="sync-st ok";};
+    img.onerror=()=>{st.textContent="写真を読み込めませんでした";st.className="sync-st err";};img.src=url;},
+  async mealEstimate(){const text=document.getElementById("mealText").value.trim();const img=this._mealImg;const st=document.getElementById("mealStatus");
+    if(!text&&!img){st.textContent="食べたものを書くか、写真を選んでください";st.className="sync-st err";return;}
+    if(!this.aiCfg().key){st.textContent="APIキーが未設定です（取込タブの「AIアドバイス」で設定）。手入力なら下の欄から";st.className="sync-st err";return;}
+    st.textContent="🤖 栄養を推定中…";st.className="sync-st";const btn=document.querySelector('#view-nutri button.btn.primary');if(btn)btn.disabled=true;
+    try{const content=[];if(img)content.push({type:"image",source:{type:"base64",media_type:"image/jpeg",data:img}});
+      content.push({type:"text",text:`${text?"食べたもの: "+text:"写真の食事の栄養を推定してください。"}\n時間帯: ${this._mealSlot||this.mealSlotDefault()}\n日付: ${this.mealDate()}`});
+      const raw=await this.aiCall("",{system:MEAL_SYSTEM,content,schema:MEAL_SCHEMA,effort:"medium",maxTokens:6000});
+      let o;try{o=JSON.parse(raw);}catch(e){throw new Error("推定結果を読み取れませんでした");}
+      const m={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),date:this.mealDate(),ts:Date.now(),slot:this._mealSlot||this.mealSlotDefault(),name:o.name||text.slice(0,30),kcal:Math.round(o.kcal),p:Math.round(o.p*10)/10,f:Math.round(o.f*10)/10,c:Math.round(o.c*10)/10,fiber:Math.round((o.fiber||0)*10)/10,salt:Math.round((o.salt||0)*10)/10,items:(o.items||[]).slice(0,12),conf:o.confidence,note:o.note||"",src:"ai",text:text||"(写真)"};
+      DB.meals.push(m);this.syncMealsToNutrition(m.date);
+      document.getElementById("mealText").value="";this._mealImg=null;document.getElementById("mealPhoto").value="";document.getElementById("mealPhotoBtn").firstChild.textContent="📷 写真";
+      st.textContent=`追加 ✓ ${m.name}：${m.kcal}kcal / P${m.p} F${m.f} C${m.c}（推定の確からしさ：${m.conf==="high"?"高":m.conf==="low"?"低":"中"}）`;st.className="sync-st ok";
+      this.renderMeals();this.toast("食事を追加 ✓");if(this.aiCfg().on!==false)this.mealAdvice(true);}
+    catch(e){st.textContent="推定エラー："+e.message;st.className="sync-st err";}
+    finally{if(btn)btn.disabled=false;}},
+  addMealManual(){const name=document.getElementById("mm-name").value.trim();const v=k=>{const x=document.getElementById("mm-"+k).value;return x===""?null:parseFloat(x);};
+    const kcal=v("kcal"),p=v("p"),f=v("f"),c=v("c");if(kcal==null&&p==null&&f==null&&c==null){this.toast("数値を入れてください");return;}
+    const m={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),date:this.mealDate(),ts:Date.now(),slot:this._mealSlot||this.mealSlotDefault(),name:name||"手入力",kcal:kcal!=null?kcal:Math.round((p||0)*4+(f||0)*9+(c||0)*4),p:p||0,f:f||0,c:c||0,src:"manual"};
+    DB.meals.push(m);this.syncMealsToNutrition(m.date);["name","kcal","p","f","c"].forEach(k=>document.getElementById("mm-"+k).value="");this.renderMeals();this.toast("食事を追加 ✓");},
+  delMeal(id){const m=DB.meals.find(x=>x.id===id);if(!m)return;if(!confirm(`「${m.name}」を削除しますか？`))return;DB.meals=DB.meals.filter(x=>x.id!==id);this.syncMealsToNutrition(m.date);this.renderMeals();},
+  // 今日の食事アドバイス：残りの kcal/PFC・時間帯・今日のトレ・直近の傾向をまとめて1〜2文
+  mealContext(){const date=this.mealDate();const g=this.nutriGoal();const t=this.mealTotals(date);const rec=DB.nutrition.find(n=>n.date===date);const official=rec&&rec.kcal!=null&&rec.src!=="meals";
+    const now=new Date();const wd=["日","月","火","水","木","金","土"];const dt=new Date(date+"T00:00:00");const M=MENU.find(m=>(m.day||"").startsWith(wd[dt.getDay()]));
+    const sess=DB.training.find(s=>s.date===date);const trained=sess&&sess.exercises.length?sess.exercises.map(e=>e.name.replace("★","")+" "+e.sets.length+"セット").join("、"):"";
+    const last7=[...DB.nutrition].filter(x=>x.date<date&&x.kcal!=null&&!x.excluded).slice(-7);const avg=k=>last7.length?Math.round(last7.reduce((a,x)=>a+(x[k]||0),0)/last7.length):null;
+    const wts=[...DB.nutrition].filter(x=>x.amWt!=null&&x.date<=date).slice(-14);const w1=wts.slice(0,7),w2=wts.slice(-7);const avgw=a=>a.length?Math.round(a.reduce((s,x)=>s+x.amWt,0)/a.length*10)/10:null;
+    const alc7=[...DB.nutrition].filter(x=>x.date<=date&&x.date>this.addDays(date,-7)).map(x=>this.alcEff(x)).filter(v=>v!=null);const drinkDays=[...DB.nutrition].filter(x=>x.date<=date&&x.date>this.addDays(date,-7)&&x.is_sober===false).length;
+    const ws=this.weeklyStats().filter(w=>!w.excluded&&!w.ref&&w.tdee!=null);const tdee=ws.length?ws[ws.length-1].tdee:null;
+    return [`日付: ${date}（${wd[dt.getDay()]}）　現在時刻: ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`,
+      `目標: ${g.kcal}kcal / P${g.p} F${g.f} C${g.c}`,
+      `今日ここまで（食事 ${t.n}件）: ${t.kcal}kcal / P${t.p} F${t.f} C${t.c}${t.fiber?" 繊維"+t.fiber:""}${t.salt?" 塩"+t.salt:""}${official?"（カロミルの日次合計 "+rec.kcal+"kcal あり）":""}`,
+      `残り: ${g.kcal-t.kcal}kcal / P${Math.round((g.p-t.p)*10)/10} F${Math.round((g.f-t.f)*10)/10} C${Math.round((g.c-t.c)*10)/10}`,
+      `今日の食事内訳: ${this.mealsFor(date).map(m=>m.slot+" "+m.name+" "+Math.round(m.kcal)+"kcal").join("、")||"なし"}`,
+      `今日のトレーニング: ${M?M.part+"（"+M.day+"）":"予定なし"}${trained?"　実施済み: "+trained:"　（まだ記録なし）"}`,
+      `直近7日の平均: ${last7.length?avg("kcal")+"kcal / P"+avg("p")+" F"+avg("f")+" C"+avg("c")+"（"+last7.length+"日）":"なし"}${tdee?"　推定TDEE "+tdee+"kcal":""}`,
+      `朝体重: ${avgw(w2)!=null?"直近7日平均 "+avgw(w2)+"kg":"なし"}${avgw(w1)!=null&&w1.length>=3&&w2!==w1?"（前の7日 "+avgw(w1)+"kg）":""}`,
+      `飲酒: 直近7日で飲酒日 ${drinkDays}日、推定アルコール合計 ${Math.round(alc7.reduce((a,b)=>a+b,0))}g`].join("\n")+"\n\n今の時点で、次に何をどれだけ食べるべきか（または控えるか）を2文以内で。";},
+  async mealAdvice(auto){const c=this.aiCfg();if(!c.key){if(!auto)this.showAiPop("🤖 食事アドバイス","APIキーが未設定です。取込タブの「AIアドバイス」で設定してください。","err");return;}
+    this.showAiPop("🤖 食事アドバイス","考え中…","busy");
+    try{const txt=await this.aiCall(this.mealContext(),{system:MEAL_ADVICE_SYSTEM});this.showAiPop("🤖 食事アドバイス",txt||"（今回はアドバイスなし）");}
+    catch(e){this.showAiPop("🤖 食事アドバイス","取得エラー："+e.message,"err");}},
   // ---- auto sync (Google Drive → Apps Script → アプリ) ----
   syncCfg(){try{return JSON.parse(localStorage.getItem(SYNC_KEY))||{};}catch(e){return {};}},
   saveSyncCfg(c){localStorage.setItem(SYNC_KEY,JSON.stringify(c));},
