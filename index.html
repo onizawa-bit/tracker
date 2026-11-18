@@ -583,7 +583,10 @@
       <div class="hint" style="margin:7px 0 0;">機械ごとに値がズレるため、同じ機械どうしで比べます。曜日では決めず、実際に測った機械を選んでください（前回選んだ機械が初期値）。</div>
     </div>
     <button class="btn primary" onclick="app.saveIB()">InBodyを保存</button>
-    <div class="sec-t" style="margin-top:16px;">記録済み</div>
+    <div class="sec-t" style="margin-top:16px;">⚖ 家の体重計（ヘルスケアから自動）</div>
+    <div class="hint">InBody とは別の、家の体重計（ウェリー等）の値です。4〜12時の最初の1件を「朝体重」として食事タブ・週次TDEE に使い、それ以外の時刻の計測も参考に並べます。</div>
+    <div class="card" id="homeWt"></div>
+    <div class="sec-t" style="margin-top:16px;">記録済み（InBody）</div>
     <div id="ibHist"></div>
   </div>
 
@@ -1729,7 +1732,15 @@ const app={
     else{DB.inbody.push({date,vals,noise:false});DB.inbody.sort((a,b)=>a.date<b.date?-1:1);}
     persist();MEASURE.forEach(m=>document.getElementById("meas-"+m.k).value="");this.toast("実測サイズを保存 ✓");this.renderIBHist();},
   ibEditDate:null,
-  renderIBHist(){const el=document.getElementById("ibHist");const s=[...DB.inbody].reverse();
+  renderHomeWt(){const el=document.getElementById("homeWt");if(!el)return;const today=todayStr();
+    const rows=[...DB.nutrition].filter(x=>x.date<=today&&(x.amWt!=null||(x.wts&&x.wts.length))).sort((a,b)=>a.date<b.date?1:-1).slice(0,14);
+    if(!rows.length){el.innerHTML='<div class="empty" style="padding:12px;">家の体重計のデータはまだありません（取込タブの同期で入ります）</div>';return;}
+    const am=rows.filter(x=>x.amWt!=null&&x.date>this.addDays(today,-7)).map(x=>x.amWt);const avg7=am.length?Math.round(am.reduce((a,b)=>a+b,0)/am.length*10)/10:null;
+    const ib=[...DB.inbody].filter(x=>!x.amWt&&x.vals&&x.vals.wt!=null).slice(-1)[0];const wd=["日","月","火","水","木","金","土"];
+    el.innerHTML=`<div style="display:flex;gap:10px;margin-bottom:8px;"><div class="kpi2" style="flex:1"><div class="v">${avg7!=null?avg7+"<small>kg</small>":"—"}</div><div class="l">朝体重 7日平均（${am.length}日）</div></div><div class="kpi2" style="flex:1"><div class="v">${ib?ib.vals.wt+"<small>kg</small>":"—"}</div><div class="l">InBody 最新${ib?"（"+ib.date.slice(5)+"・"+ibMachineName(ibMachineOf(ib))+"）":""}</div></div></div>
+      ${rows.map(x=>{const d=new Date(x.date+"T00:00:00");const others=(x.wts||[]).filter(w=>!(x.amWtTime&&w.t===x.amWtTime));
+        return `<div class="row" style="padding:7px 11px;"><div class="l" style="font-weight:700;">${x.date.slice(5).replace("-","/")}<span class="dt">(${wd[d.getDay()]})</span>　${x.amWt!=null?`<b>${x.amWt}</b>kg<span class="dt"> 朝 ${x.amWtTime||""}</span>`:'<span class="dt">朝の計測なし</span>'}${others.length?`<span class="dt">　他 ${others.map(w=>w.t+" "+w.q).join("・")}</span>`:""}</div></div>`;}).join("")}`;},
+  renderIBHist(){this.renderHomeWt();const el=document.getElementById("ibHist");const s=[...DB.inbody].reverse();
     if(!s.length){el.innerHTML='<div class="empty">記録なし</div>';return;}
     el.innerHTML=s.map(x=>{const parts=[];
       if(x.vals.wt!=null)parts.push("体重"+x.vals.wt);
@@ -1762,13 +1773,15 @@ const app={
       ["kcal"].forEach(k=>{if(r[k]!=null)r[k]=Math.round(r[k]);});
       ["p","f","c","fiber"].forEach(k=>{if(r[k]!=null)r[k]=Math.round(r[k]*10)/10;});});
     // 朝体重：実時刻 4:00〜12:00 の最初の1件（体重計アプリ・InBodyアプリ等、source は問わない）
-    Object.keys(wts).forEach(d=>{const am=wts[d].filter(w=>w.t>="04:00"&&w.t<"12:00").sort((a,b)=>a.t<b.t?-1:1);if(!am.length)return;
-      const r=day(d);r.amWt=Math.round(am[0].q*10)/10;r.amWtTime=am[0].t;r.amWtSrc=am[0].src;});
+    Object.keys(wts).forEach(d=>{const all=wts[d].sort((a,b)=>a.t<b.t?-1:1);const r=day(d);
+      r.wts=all.map(w=>({t:w.t,q:Math.round(w.q*10)/10,src:w.src})); // その日の全計測（家の体重計・InBodyアプリ等）
+      const am=all.filter(w=>w.t>="04:00"&&w.t<"12:00");if(!am.length)return;
+      r.amWt=Math.round(am[0].q*10)/10;r.amWtTime=am[0].t;r.amWtSrc=am[0].src;});
     return Object.values(days).sort((a,b)=>a.date<b.date?-1:1);},
   // 取込：同じ日付は与えられた項目を上書き、無い項目と「記録漏れ」フラグは保持。NUTRI_CALC_FROM より前の新規日は記録漏れ扱いで入れる
   importNutrition(recs){const cnt={days:0,kcal:0,steps:0,amWt:0,dates:[]};
     recs.forEach(r=>{if(!r||!/^\d{4}-\d{2}-\d{2}$/.test(r.date))return;
-      const keys=["kcal","p","f","c","fiber","salt","steps","amWt","amWtTime","amWtSrc"].filter(k=>r[k]!=null);if(!keys.length&&r.excluded==null)return;
+      const keys=["kcal","p","f","c","fiber","salt","steps","amWt","amWtTime","amWtSrc","wts"].filter(k=>r[k]!=null);if(!keys.length&&r.excluded==null)return;
       let ex=DB.nutrition.find(x=>x.date===r.date);
       if(!ex){ex={date:r.date,excluded:r.date<NUTRI_CALC_FROM};DB.nutrition.push(ex);}
       keys.forEach(k=>ex[k]=r[k]);if(r.kcal!=null)ex.src=r.src||"import";if(r.excluded!=null)ex.excluded=!!r.excluded;this.deriveAlcohol(ex);
@@ -1818,8 +1831,8 @@ const app={
         <div class="d">${x.date.slice(5).replace("-","/")}<small>${wd[dt.getDay()]}${x.date===todayStr()?"・今日":""}</small>${x.excluded?'<span class="lk">漏れ</span>':""}</div>
         <div class="k"><div class="kb"><i class="${kcls}" style="width:${kc!=null?pct:0}%"></i><span class="gl" style="left:${100/1.4}%"></span></div><div class="kv">${kc!=null?kc:"<small>栄養なし</small>"}${kc!=null?'<small>kcal</small>':""}</div></div>
         <div class="m">${macro("p","P")}${macro("f","F")}${macro("c","C")}</div>
-        <div class="x">${alc}${x.amWt!=null?`<span>⚖ <b>${x.amWt}</b>kg</span>`:""}${x.steps!=null?`<span>🚶 <b>${(x.steps/1000).toFixed(1)}</b>k</span>`:""}${x.fiber!=null?`<span>繊維 <b>${x.fiber}</b></span>`:""}${x.salt!=null?`<span>塩 <b>${x.salt}</b></span>`:""}</div></div>`;
-      const det=isOpen?`<div class="dr-detail">${kc!=null?`kcal ${kc}（目標比 ${kc-g.kcal>=0?"+":""}${Math.round(kc-g.kcal)}）　P${x.p}（${Math.round((x.p||0)-g.p)>=0?"+":""}${Math.round((x.p||0)-g.p)}） F${x.f}（${Math.round((x.f||0)-g.f)>=0?"+":""}${Math.round((x.f||0)-g.f)}） C${x.c}（${Math.round((x.c||0)-g.c)>=0?"+":""}${Math.round((x.c||0)-g.c)}）`:"この日の栄養データはありません"}${x.amWtTime?`　朝体重 ${x.amWt}kg（${x.amWtTime}${x.amWtSrc?"・"+x.amWtSrc:""}）`:""}${x.is_sober!=null?`　アルコール：${x.is_sober?"○ ノンアル":"● 飲酒"}（${x.alcohol_manual!=null?"手動 "+x.alcohol_manual:"推定 "+Math.max(0,x.alcohol_est)}g）`:""}
+        <div class="x">${alc}${x.amWt!=null?`<span>⚖ <b>${x.amWt}</b>kg</span>`:(x.wts&&x.wts.length?`<span style="opacity:.7">⚖ <b>${x.wts[x.wts.length-1].q}</b>kg<small>(${x.wts[x.wts.length-1].t}・朝以外)</small></span>`:"")}${x.steps!=null?`<span>🚶 <b>${(x.steps/1000).toFixed(1)}</b>k</span>`:""}${x.fiber!=null?`<span>繊維 <b>${x.fiber}</b></span>`:""}${x.salt!=null?`<span>塩 <b>${x.salt}</b></span>`:""}</div></div>`;
+      const det=isOpen?`<div class="dr-detail">${kc!=null?`kcal ${kc}（目標比 ${kc-g.kcal>=0?"+":""}${Math.round(kc-g.kcal)}）　P${x.p}（${Math.round((x.p||0)-g.p)>=0?"+":""}${Math.round((x.p||0)-g.p)}） F${x.f}（${Math.round((x.f||0)-g.f)>=0?"+":""}${Math.round((x.f||0)-g.f)}） C${x.c}（${Math.round((x.c||0)-g.c)>=0?"+":""}${Math.round((x.c||0)-g.c)}）`:"この日の栄養データはありません"}${x.amWtTime?`　朝体重 ${x.amWt}kg（${x.amWtTime}${x.amWtSrc?"・"+x.amWtSrc:""}）`:""}${x.wts&&x.wts.length>1?`　その日の計測: ${x.wts.map(w=>w.t+" "+w.q+"kg").join("、")}`:""}${x.is_sober!=null?`　アルコール：${x.is_sober?"○ ノンアル":"● 飲酒"}（${x.alcohol_manual!=null?"手動 "+x.alcohol_manual:"推定 "+Math.max(0,x.alcohol_est)}g）`:""}
         <div class="nu-act" style="margin-top:6px;"><label onclick="event.stopPropagation()"><input type="checkbox" ${x.excluded?"checked":""} onchange="app.toggleNutriExcl('${x.date}')">記録漏れ（週平均から除外）</label><span class="sp"></span><button onclick="event.stopPropagation();app.editNutri('${x.date}')">編集</button><button onclick="event.stopPropagation();app.delNutri('${x.date}')">削除</button></div></div>`:"";
       return row+det;}).join("");},
   nutriToggleRow(d){this._nuOpen=this._nuOpen||{};this._nuOpen[d]=!this._nuOpen[d];this.renderNutri();},
@@ -2055,7 +2068,7 @@ const app={
       const groups=[["── ホルモン ──",[["tT","総テストステロン"],["fT","遊離T"],["E2","エストラジオール"],["PRL","プロラクチン"],["LH","LH"],["FSH","FSH"]]],
         ["── 安全性 ──",[["Ht","ヘマトクリット"],["Hb","血色素"],["HDL","HDL"],["LDL","LDL"],["TG","中性脂肪"],["CK","CK"],["eGFR","eGFR"],["Cr","クレアチニン"],["cysC","シスタチンC"],["BUN","尿素窒素"],["Plt","血小板"],["WBC","白血球"]]],
         ["── 実測サイズ ──",[["ib_waist","📏腹囲"],["ib_chest","胸囲"],["ib_shoulder","肩周り"],["ib_armL","上腕(左)"],["ib_armR","上腕(右)"],["ib_thigh","太もも"],["ib_neck","首"]]],
-        ["── InBody ──",[["ib_wt","体重"],["ib_smm","骨格筋量"],["ib_mm","筋肉量"],["ib_fat","体脂肪量"],["ib_pbf","体脂肪率"],["ib_tbw","体水分量"]]],
+        ["── InBody ──",[["ib_wt","体重"],["wt_all","⚖ 体重（InBody＋家の体重計）"],["ib_smm","骨格筋量"],["ib_mm","筋肉量"],["ib_fat","体脂肪量"],["ib_pbf","体脂肪率"],["ib_tbw","体水分量"]]],
         ["── 栄養・TDEE ──",[["alc_hdl","🍶 週アルコール × HDL"],["nu_wk_kcal","🍽 週平均kcal"],["nu_wk_wt","⚖ 朝体重 週平均"],["nu_tdee","🔥 推定TDEE(週)"],["nu_kcal","kcal(日次)"],["nu_fiber","食物繊維(日次)"],["nu_steps","歩数(日次)"],["nu_amWt","朝体重(日次)"],["nu_p","タンパク質(日次)"],["nu_f","脂質(日次)"],["nu_c","炭水化物(日次)"],["nu_salt","食塩(日次)"]]],
         ["── トレMAX ──",MENU.flatMap(m=>m.ex.concat(m.off||[])).concat(Object.values(DB.customEx||{}).flat()).filter((e,i,a)=>a.findIndex(x=>x.n===e.n)===i).map(e=>["tr_"+e.n,e.n.replace("★","")])]];
       groups.forEach(([label,items])=>{const og=document.createElement("optgroup");og.label=label;
@@ -2101,6 +2114,10 @@ const app={
         const dt=new Date(d+"T00:00:00");const day=(dt.getDay()+6)%7;const mon=new Date(dt);mon.setDate(dt.getDate()-day);
         const wkey=mon.toISOString().slice(0,10);if(!wk[wkey])wk[wkey]={ok:0,t:0};wk[wkey].ok+=p.ok;wk[wkey].t+=t;});
       Object.keys(wk).sort().forEach(w=>{pts.push({date:w,v:Math.round(wk[w].ok/wk[w].t*100)});});}
+    else if(key==="wt_all"){unit="kg";title="体重（実線＝InBody／灰点＝家の体重計・朝）";
+      DB.inbody.forEach(x=>{if(!x.amWt&&x.vals&&x.vals.wt!=null)pts.push({date:x.date,v:x.vals.wt,noise:false});});
+      DB.nutrition.forEach(x=>{if(x.amWt!=null&&!DB.inbody.some(i=>!i.amWt&&i.date===x.date&&i.vals&&i.vals.wt!=null))pts.push({date:x.date,v:x.amWt,noise:true});});
+      pts.sort((a,b)=>a.date<b.date?-1:1);extraNote="灰色の点＝家の体重計の朝体重（InBody とは条件が違うので参考）。実線は InBody のみを結ぶ";}
     else if(key.startsWith("ib_")){const f=key.slice(3);DB.inbody.forEach(x=>{if(x.vals[f]!=null)pts.push({date:x.date,v:x.vals[f],noise:x.noise});});
       const def=IB_FIELDS.find(f2=>f2.k===f)||MEASURE.find(f2=>f2.k===f);unit=def?def.u:"";title=def?def.n:f;}
     else if(key.startsWith("tr_")){const name=key.slice(3);DB.training.forEach(s=>{const e=s.exercises.find(x=>x.name===name);if(e){const b=this.best(e.sets);if(b&&b.w)pts.push({date:s.date,v:b.w});}});unit="kg";title=name.replace("★","")+" 最重量";}
