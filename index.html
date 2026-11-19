@@ -1766,7 +1766,7 @@ const app={
     (obj.data.metrics||[]).forEach(m=>{const key=HAE_MAP[m.name];if(!key||!Array.isArray(m.data))return;
       m.data.forEach(pt=>{if(!pt||typeof pt.date!=="string"||typeof pt.qty!=="number"||!isFinite(pt.qty))return;const d=pt.date.slice(0,10),t=pt.date.slice(11,16);
         if(key==="weight"){(wts[d]||(wts[d]=[])).push({t,q:pt.qty,src:pt.source||""});return;}
-        const r=day(d);r[key]=(r[key]||0)+pt.qty;});});
+        const r=day(d);r[key]=(r[key]||0)+pt.qty;if(key==="steps"&&(!r.dataAt||t>r.dataAt))r.dataAt=t;});});
     Object.keys(days).forEach(d=>{const r=days[d];
       if(r.sodium!=null){r.salt=Math.round(r.sodium*2.54/1000*10)/10;delete r.sodium;} // 食塩相当量(g)=Na(mg)×2.54÷1000
       if(r.steps!=null)r.steps=Math.round(r.steps);
@@ -1781,7 +1781,7 @@ const app={
   // 取込：同じ日付は与えられた項目を上書き、無い項目と「記録漏れ」フラグは保持。NUTRI_CALC_FROM より前の新規日は記録漏れ扱いで入れる
   importNutrition(recs){const cnt={days:0,kcal:0,steps:0,amWt:0,dates:[]};
     recs.forEach(r=>{if(!r||!/^\d{4}-\d{2}-\d{2}$/.test(r.date))return;
-      const keys=["kcal","p","f","c","fiber","salt","steps","amWt","amWtTime","amWtSrc","wts"].filter(k=>r[k]!=null);if(!keys.length&&r.excluded==null)return;
+      const keys=["kcal","p","f","c","fiber","salt","steps","amWt","amWtTime","amWtSrc","wts","dataAt"].filter(k=>r[k]!=null);if(!keys.length&&r.excluded==null)return;
       let ex=DB.nutrition.find(x=>x.date===r.date);
       if(!ex){ex={date:r.date,excluded:r.date<NUTRI_CALC_FROM};DB.nutrition.push(ex);}
       keys.forEach(k=>ex[k]=r[k]);if(r.kcal!=null)ex.src=r.src||"import";if(r.excluded!=null)ex.excluded=!!r.excluded;this.deriveAlcohol(ex);
@@ -1831,7 +1831,7 @@ const app={
         <div class="d">${x.date.slice(5).replace("-","/")}<small>${wd[dt.getDay()]}${x.date===todayStr()?"・今日":""}</small>${x.excluded?'<span class="lk">漏れ</span>':""}</div>
         <div class="k"><div class="kb"><i class="${kcls}" style="width:${kc!=null?pct:0}%"></i><span class="gl" style="left:${100/1.4}%"></span></div><div class="kv">${kc!=null?kc:"<small>栄養なし</small>"}${kc!=null?'<small>kcal</small>':""}</div></div>
         <div class="m">${macro("p","P")}${macro("f","F")}${macro("c","C")}</div>
-        <div class="x">${alc}${x.amWt!=null?`<span>⚖ <b>${x.amWt}</b>kg</span>`:(x.wts&&x.wts.length?`<span style="opacity:.7">⚖ <b>${x.wts[x.wts.length-1].q}</b>kg<small>(${x.wts[x.wts.length-1].t}・朝以外)</small></span>`:"")}${x.steps!=null?`<span>🚶 <b>${(x.steps/1000).toFixed(1)}</b>k</span>`:""}${x.fiber!=null?`<span>繊維 <b>${x.fiber}</b></span>`:""}${x.salt!=null?`<span>塩 <b>${x.salt}</b></span>`:""}</div></div>`;
+        <div class="x">${x.dataAt&&x.date>=this.addDays(todayStr(),-1)?`<span style="color:var(--care)">📡 ${x.dataAt}時点</span>`:""}${alc}${x.amWt!=null?`<span>⚖ <b>${x.amWt}</b>kg</span>`:(x.wts&&x.wts.length?`<span style="opacity:.7">⚖ <b>${x.wts[x.wts.length-1].q}</b>kg<small>(${x.wts[x.wts.length-1].t}・朝以外)</small></span>`:"")}${x.steps!=null?`<span>🚶 <b>${(x.steps/1000).toFixed(1)}</b>k</span>`:""}${x.fiber!=null?`<span>繊維 <b>${x.fiber}</b></span>`:""}${x.salt!=null?`<span>塩 <b>${x.salt}</b></span>`:""}</div></div>`;
       const det=isOpen?`<div class="dr-detail">${kc!=null?`kcal ${kc}（目標比 ${kc-g.kcal>=0?"+":""}${Math.round(kc-g.kcal)}）　P${x.p}（${Math.round((x.p||0)-g.p)>=0?"+":""}${Math.round((x.p||0)-g.p)}） F${x.f}（${Math.round((x.f||0)-g.f)>=0?"+":""}${Math.round((x.f||0)-g.f)}） C${x.c}（${Math.round((x.c||0)-g.c)>=0?"+":""}${Math.round((x.c||0)-g.c)}）`:"この日の栄養データはありません"}${x.amWtTime?`　朝体重 ${x.amWt}kg（${x.amWtTime}${x.amWtSrc?"・"+x.amWtSrc:""}）`:""}${x.wts&&x.wts.length>1?`　その日の計測: ${x.wts.map(w=>w.t+" "+w.q+"kg").join("、")}`:""}${x.is_sober!=null?`　アルコール：${x.is_sober?"○ ノンアル":"● 飲酒"}（${x.alcohol_manual!=null?"手動 "+x.alcohol_manual:"推定 "+Math.max(0,x.alcohol_est)}g）`:""}
         <div class="nu-act" style="margin-top:6px;"><label onclick="event.stopPropagation()"><input type="checkbox" ${x.excluded?"checked":""} onchange="app.toggleNutriExcl('${x.date}')">記録漏れ（週平均から除外）</label><span class="sp"></span><button onclick="event.stopPropagation();app.editNutri('${x.date}')">編集</button><button onclick="event.stopPropagation();app.delNutri('${x.date}')">削除</button></div></div>`:"";
       return row+det;}).join("");},
@@ -2032,7 +2032,8 @@ const app={
       if(!o.data||!Array.isArray(o.data.metrics))throw new Error("形式が違います");
       r=this.importNutrition(this.parseHAE(o));persist();
       const files=(o.files||[]).length;const last=files?o.files[o.files.length-1].slice(5):"";
-      msg=`同期 ✓ ${new Date().toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}　ファイル ${files}件${last?"（〜"+last+"）":""} ／ 栄養 ${r.kcal}日・歩数 ${r.steps}日・朝体重 ${r.amWt}日`;}
+      const lastRec=[...DB.nutrition].filter(x=>x.dataAt).sort((a,b)=>a.date<b.date?1:-1)[0];
+      msg=`同期 ✓ ${new Date().toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})}　ファイル ${files}件${last?"（〜"+last+"）":""}${lastRec?"　データは "+lastRec.date.slice(5)+" "+lastRec.dataAt+" 時点まで":""} ／ 栄養 ${r.kcal}日・歩数 ${r.steps}日・朝体重 ${r.amWt}日`;}
     catch(e){err=true;msg="同期エラー："+(e&&e.message?e.message:String(e))+(/Failed to fetch|Load failed|NetworkError/.test(String(e&&e.message))?"（通信できません。URL・ネット接続・アクセス「全員」を確認）":"");}
     this._syncing=false;Object.assign(c,{last:Date.now(),lastMsg:msg,lastErr:err});this.saveSyncCfg(c);this.syncStatus(msg,err?"err":"ok");
     if(!silent||err)this.toast(err?"同期に失敗しました":"自動同期 ✓");else if(r&&r.days)this.toast(`自動同期 ✓ ${r.days}日分を更新`);
