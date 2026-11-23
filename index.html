@@ -130,6 +130,13 @@
   .days button.on{background:var(--navy);color:#fff;border-color:var(--navy);}
   .days button .sub{display:block;font-size:9.5px;color:var(--mute);font-weight:600;margin-top:1px;}
   .days button.on .sub{color:#cdd8e6;}
+  .days button.rec{border:2px solid var(--orange);}
+  .days button.rec .sub{color:var(--orange-d);font-weight:800;}
+  .days button.on.rec .sub{color:#ffd9b0;}
+  .days button.tr{border-style:dashed;}
+  .rot-hint{font-size:11.5px;font-weight:700;color:var(--navy);background:#fff6ec;border:1px solid #e8cfa8;border-radius:9px;padding:7px 10px;margin:0 0 8px;line-height:1.5;}
+  .rot-hint:empty{display:none;}
+  .rot-hint small{color:var(--mute);font-weight:600;}
   .ex-h{display:flex;gap:8px;margin-bottom:9px;}
   .ex-num{flex:none;width:22px;height:22px;border-radius:50%;background:var(--orange);color:#fff;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;margin-top:1px;}
   .ex-name{font-size:14px;font-weight:800;line-height:1.3;}
@@ -423,7 +430,8 @@
 
   <!-- TRAINING -->
   <div class="view on" id="view-log">
-    <div class="sec-t2">部位を選んで入力（複数選択OK・肩＋脚の日も可）<button class="circbtn" id="circuitBtn" onclick="app.toggleCircuit()">🔁 サーキット OFF</button></div>
+    <div class="sec-t2">メニューを選んで入力（前回から空いた順に回す）<button class="circbtn" id="circuitBtn" onclick="app.toggleCircuit()">🔁 サーキット OFF</button></div>
+    <div class="rot-hint" id="rotHint"></div>
     <div class="days" id="partSel"></div>
     <div class="hint" id="partNote"></div>
     <div id="exList"></div>
@@ -632,36 +640,41 @@
 <script>
 // ================= MENU =================
 const MENU=[
-  {part:"背中",day:"月・広がり",note:"月：背中A（広がり）＋肩後部。懸垂が主種目。左肩はプルオーバーで休める。多関節2分・単関節60〜90秒休憩。約17セット。",
+  {part:"背中",label:"背中A",theme:"広がり",muscles:["広背","後部"],note:"背中A（広がり）＋肩後部。懸垂が主種目。左肩はプルオーバーで休める。多関節2分・単関節60〜90秒休憩。約17セット。",
    recNote:"増量期(12月〜)：バックポーズ強化。この日は広がり。懸垂は肩幅の1.3〜1.5倍・順手（錨型グリップ可）で、10回×4セットが余裕になったら加重。リバースプルダウンとプルオーバーは伸ばし切ってから引く。",
    rec:[{n:"懸垂",s:"4×6-10"},{n:"ラットプルダウン（リバース）",s:"3×10-12"},{n:"プルオーバー（ケーブル）",s:"3×12-15"},{n:"リバースペックフライ",s:"4×15-20"},{n:"フェイスプル",s:"3×15-20"}],
-   ex:[{n:"懸垂",t:"広背の広がり・順手やや広め ｜ 6–10回（kg欄は加重分、自重は0）",star:true,main:true},{n:"ラットプルダウン（リバース）",t:"広背下部・逆手 or 狭いVバー ｜ 10–12回"},{n:"プルオーバー（ケーブル）",t:"左肩休め単離 ｜ 12–15回",w:30},{n:"リバースペックフライ",t:"肩後部（月・木・土）｜ 15–20回",w:30},{n:"フェイスプル",t:"ロープ・小指上・外旋 ｜ 15–20回"},{n:"★ラットプルダウン（ワイド）",t:"懸垂ができない日・最後に追い込む用：同じ 4×8-10（ストレート or 錨型バーで固定）",w:40,alt:"懸垂",altOf:"懸垂",main:true},{n:"ダンベル・リアレイズ",t:"リバースペックフライが混んでいる時：同じセット数。ベンチ30〜45度にうつ伏せで胸を当て、腕を真横へ肩の高さまで。肩甲骨は寄せすぎない、反動なし ｜ 15–20回",alt:"リバースペックフライ",altOf:"リバースペックフライ"}],
-   off:[{n:"ケーブル・バイセプスカール",t:"→ 金・土で実施",w:35,kind:"other"},{n:"シーテッドロー（ケーブル）",t:"→ 金で実施",w:40,kind:"other"}]},
-  {part:"胸",day:"火・側部も",note:"火：胸は維持量＋肩側部（週3回の1回目）＋三頭。左肩保護。採血前日なので脚はやらない。約15セット。",
+   ex:[{n:"懸垂",t:"広背の広がり・順手やや広め ｜ 6–10回（kg欄は加重分、自重は0）",star:true,main:true},{n:"ラットプルダウン（リバース）",t:"広背下部・逆手 or 狭いVバー ｜ 10–12回"},{n:"プルオーバー（ケーブル）",t:"左肩休め単離 ｜ 12–15回",w:30},{n:"リバースペックフライ",t:"肩後部（背中A・肩＋広背・腕＋肩の3メニュー）｜ 15–20回",w:30},{n:"フェイスプル",t:"ロープ・小指上・外旋 ｜ 15–20回"},{n:"★ラットプルダウン（ワイド）",t:"懸垂ができない日・最後に追い込む用：同じ 4×8-10（ストレート or 錨型バーで固定）",w:40,alt:"懸垂",altOf:"懸垂",main:true},{n:"ダンベル・リアレイズ",t:"リバースペックフライが混んでいる時：同じセット数。ベンチ30〜45度にうつ伏せで胸を当て、腕を真横へ肩の高さまで。肩甲骨は寄せすぎない、反動なし ｜ 15–20回",alt:"リバースペックフライ",altOf:"リバースペックフライ"}],
+   off:[{n:"ケーブル・バイセプスカール",t:"→ 背中B・腕＋肩で実施",w:35,kind:"other"},{n:"シーテッドロー（ケーブル）",t:"→ 背中Bで実施",w:40,kind:"other"}]},
+  {part:"胸",label:"胸＋側部",theme:"三頭も",muscles:["胸","側部","三頭"],note:"胸は維持量＋肩側部＋三頭。左肩保護。約15セット。",
    recNote:"増量期(12月〜)：フロントは悪くないので胸は維持。ディップスは上腕が床と平行まで・やや前傾・加重なしで開始し、左肩に詰まりが出たら即中止してシーテッドチェストを3セットに。側部はケーブルを体の後ろから通して伸長位から。",
    rec:[{n:"インクライン・ダンベルプレス",s:"3×8-10"},{n:"シーテッドチェストマシン",s:"2×10-12"},{n:"ディップス",s:"3×8-12"},{n:"★ケーブル・サイドレイズ（片腕）",s:"5×12-15"},{n:"ケーブル・プレスダウン",s:"2×10-12"}],
-   ex:[{n:"インクライン・ダンベルプレス",t:"上部 ｜ 8–10回",w:17.5,star:true,main:true},{n:"シーテッドチェストマシン",t:"固定軌道・胸の2種目目 ｜ 10–12回",w:70},{n:"ディップス",t:"胸＋三頭・やや前傾・上腕が床と平行まで ｜ 8–12回（kg欄は加重分、自重は0）"},{n:"★ケーブル・サイドレイズ（片腕）",t:"体の後ろから・伸長位 ｜ 12–15回。ケーブルが混んでいればダンベルで同じ回数",w:12.5,star:true},{n:"ケーブル・プレスダウン",t:"三頭（週2回目は土）｜ 10–12回"},{n:"シーテッドインクラインマシン（アウンズ）",t:"インクラインDBの代わりに同じ 3×8-10（上部胸・固定軌道。気分で選んでOK）",alt:"インクライン・ダンベルプレス",altOf:"インクライン・ダンベルプレス",main:true},{n:"チェストプレス（マシン）",t:"シーテッドチェストマシンの代わりに同じ 2×10-12（固定軌道）",alt:"シーテッドチェストマシン",altOf:"シーテッドチェストマシン"}],
+   ex:[{n:"インクライン・ダンベルプレス",t:"上部 ｜ 8–10回",w:17.5,star:true,main:true},{n:"シーテッドチェストマシン",t:"固定軌道・胸の2種目目 ｜ 10–12回",w:70},{n:"ディップス",t:"胸＋三頭・やや前傾・上腕が床と平行まで ｜ 8–12回（kg欄は加重分、自重は0）"},{n:"★ケーブル・サイドレイズ（片腕）",t:"体の後ろから・伸長位 ｜ 12–15回。ケーブルが混んでいればダンベルで同じ回数",w:12.5,star:true},{n:"ケーブル・プレスダウン",t:"三頭（2回目は腕＋肩）｜ 10–12回"},{n:"シーテッドインクラインマシン（アウンズ）",t:"インクラインDBの代わりに同じ 3×8-10（上部胸・固定軌道。気分で選んでOK）",alt:"インクライン・ダンベルプレス",altOf:"インクライン・ダンベルプレス",main:true},{n:"チェストプレス（マシン）",t:"シーテッドチェストマシンの代わりに同じ 2×10-12（固定軌道）",alt:"シーテッドチェストマシン",altOf:"シーテッドチェストマシン"}],
    off:[{n:"ペックフライ（マシン）",t:"時間があれば 2×12-15（胸は維持量なので省いてよい）",kind:"other"}]},
-  {part:"脚",day:"水・脚",note:"水：脚（週1回・維持）。スクワットだけMAXを追う。腰が丸まらない深さで。約13セット。",
+  {part:"脚",label:"脚",theme:"維持",muscles:["脚"],note:"脚（維持）。スクワットだけMAXを追う。腰が丸まらない深さで。水曜朝の採血の前日は避ける（CK・肝酵素が上がるため）。合同練習でスクワットをした直後なら軽めでよい。約13セット。",
    recNote:"増量期(12月〜)：フィジークは太ももがサーフパンツで隠れるので脚は維持量。スクワット4×6-8で全身の筋量と体幹の安定を保つ。ふくらはぎはパンツの下から見えるので、時間があればカーフを2セット。",
    rec:[{n:"スクワット",s:"4×6-8"},{n:"レッグプレスプレートマシンアウンズ",s:"3×10-12"},{n:"レッグエクステンション",s:"3×15-20"},{n:"レッグカール",s:"3×10-12"}],
    ex:[{n:"スクワット",t:"唯一MAXを追う ｜ 6–8回",star:true,main:true},{n:"レッグプレスプレートマシンアウンズ",t:"四頭・プレート式 ｜ 10–12回。ラックが混んでいれば先にこれを重めで",w:80},{n:"レッグエクステンション",t:"トップ静止 ｜ 15–20回"},{n:"レッグカール",t:"腿裏 ｜ 10–12回",w:30},{n:"レッグプレス",t:"プレート式が混んでいれば：同じ 3×10-12",alt:"レッグプレスプレートマシンアウンズ",altOf:"レッグプレスプレートマシンアウンズ"}],
-   off:[{n:"カーフレイズ（レッグプレス）",t:"時間があれば 2×12-15（ふくらはぎはサーフパンツの下から見える）",kind:"other"},{n:"フェイスプル",t:"→ 月・木で実施",kind:"other"}]},
-  {part:"肩",day:"木・肩＋広背",note:"木：肩（側部・後部）＋広背（週2回目）＋腹。プレスなし。サイドレイズ⇄リバースペックフライを交互に回すと早い。約19セット。",
-   recNote:"増量期(12月〜)：バックで肩を「ボコッ」とさせる日。側部は重さを欲張らず12.5kg前後で15回を丁寧に、最後の数回は上半分の部分反復。ワイドプルダウンは広背の幅の週2回目（月の懸垂と同じバーの握りで）。フェイスプルは左肩のケアも兼ねる。腹は増量期に厚みを作っておく。",
+   off:[{n:"カーフレイズ（レッグプレス）",t:"時間があれば 2×12-15（ふくらはぎはサーフパンツの下から見える）",kind:"other"},{n:"フェイスプル",t:"→ 背中A・肩＋広背で実施",kind:"other"}]},
+  {part:"肩",label:"肩＋広背",theme:"腹も",muscles:["側部","後部","広背"],note:"肩（側部・後部）＋広背（2回目）＋腹。プレスなし。サイドレイズ⇄リバースペックフライを交互に回すと早い。背中Aの翌日は避ける（広背・後部が重なる）。約19セット。",
+   recNote:"増量期(12月〜)：バックで肩を「ボコッ」とさせる日。側部は重さを欲張らず12.5kg前後で15回を丁寧に、最後の数回は上半分の部分反復。ワイドプルダウンは広背の幅の2回目（背中Aの懸垂と同じ握りで）。フェイスプルは左肩のケアも兼ねる。腹は増量期に厚みを作っておく。",
    rec:[{n:"★ケーブル・サイドレイズ（片腕）",s:"6×12-15"},{n:"リバースペックフライ",s:"4×15-20"},{n:"★ラットプルダウン（ワイド）",s:"3×8-10"},{n:"フェイスプル",s:"3×15-20"},{n:"ケーブルクランチ",s:"3×12-15"}],
-   ex:[{n:"★ケーブル・サイドレイズ（片腕）",t:"真横の張り出し ｜ 12–15回",w:12.5,star:true},{n:"リバースペックフライ",t:"肩後部 ｜ 15–20回",w:30},{n:"★ラットプルダウン（ワイド）",t:"広背の幅（週2回目）・ストレート or 錨型バーで固定 ｜ 8–10回",w:40,star:true},{n:"フェイスプル",t:"ロープ・小指上・外旋 ｜ 15–20回。リバースペックフライが混んでいればこれを増やす"},{n:"ケーブルクランチ",t:"腹直筋・ロープを頭の横で持ち、背中を丸めて肘を膝へ。腰は反らさない ｜ 12–15回"},{n:"ダンベル・リアレイズ",t:"リバースペックフライが混んでいる時：同じセット数。ベンチ30〜45度にうつ伏せで胸を当て、腕を真横へ肩の高さまで。肩甲骨は寄せすぎない、反動なし ｜ 15–20回",alt:"リバースペックフライ",altOf:"リバースペックフライ"}],
+   ex:[{n:"★ケーブル・サイドレイズ（片腕）",t:"真横の張り出し ｜ 12–15回",w:12.5,star:true},{n:"リバースペックフライ",t:"肩後部 ｜ 15–20回",w:30},{n:"★ラットプルダウン（ワイド）",t:"広背の幅（2回目）・ストレート or 錨型バーで固定 ｜ 8–10回",w:40,star:true},{n:"フェイスプル",t:"ロープ・小指上・外旋 ｜ 15–20回。リバースペックフライが混んでいればこれを増やす"},{n:"ケーブルクランチ",t:"腹直筋・ロープを頭の横で持ち、背中を丸めて肘を膝へ。腰は反らさない ｜ 12–15回"},{n:"ダンベル・リアレイズ",t:"リバースペックフライが混んでいる時：同じセット数。ベンチ30〜45度にうつ伏せで胸を当て、腕を真横へ肩の高さまで。肩甲骨は寄せすぎない、反動なし ｜ 15–20回",alt:"リバースペックフライ",altOf:"リバースペックフライ"}],
    off:[{n:"ケーブル・フロントレイズ",t:"増量期は外した（僧帽下部はフェイスプルとワイドローで）",w:5,kind:"no"}]},
-  {part:"弱点",day:"金・背中B",note:"金：背中B（厚み・上背）＋二頭。シーテッドローは両手（ワイドバー）と片手を別の種目で記録。Tバーローは胸当て付きなら胸を当てて腰を守る。約14セット。",
+  {part:"弱点",label:"背中B",theme:"厚み",muscles:["上背","広背","二頭"],note:"背中B（厚み・上背）＋二頭。シーテッドローは両手（ワイドバー）と片手を別の種目で記録。Tバーローは胸当て付きなら胸を当てて腰を守る。約14セット。",
    recNote:"増量期(12月〜)：上背の厚みの日。両手はワイドバーで肘を開いてみぞおちへ・寄せ切って1秒止める。片手はシングルハンドルで肘を脇に沿わせて腰骨へ引き、戻しで腕を前へ伸ばし切る。Tバーローは肘を体の横で引き、背中の中央を寄せる。RDLは外し、背中の厚みはTバーローで取る。",
    rec:[{n:"シーテッドロー（ケーブル）",s:"4×8-12（両手・ワイド）"},{n:"シーテッドロー（ケーブル・片手）",s:"3×10-12（左右）"},{n:"Tバーロー",s:"4×8-10"},{n:"ケーブル・バイセプスカール",s:"3×10-12"}],
    ex:[{n:"シーテッドロー（ケーブル）",t:"両手・ワイドバーで上背の厚み ｜ 8–12回",w:40,star:true,main:true},{n:"シーテッドロー（ケーブル・片手）",t:"シングルハンドルで広背を伸ばし切る。重量・回数は片側の値、左右で1セット ｜ 10–12回"},{n:"Tバーロー",t:"背中の厚み・胸当て付きなら胸を当てる ｜ 8–10回"},{n:"ケーブル・バイセプスカール",t:"二頭 ｜ 10–12回",w:35},{n:"シーテッドロープレート",t:"プレート式マシン（胸当て付き）。ケーブルが混んでいる時や、ワイド・片腕のどちらかをマシンでやる時に。ケーブルとは負荷が違うので記録は別 ｜ 8–12回",alt:"シーテッドロー（ケーブル）",altOf:"シーテッドロー（ケーブル）"},{n:"ラットプルダウン（リバース）",t:"混雑時：シーテッドローの代わりに同じセット数 ｜ 10–12回",alt:"シーテッドロー",altOf:"シーテッドロー（ケーブル）"}],
-   off:[{n:"RDL（ルーマニアンデッド）",t:"増量期はやらない（背中の厚みはTバーロー、腿裏はレッグカールで）",kind:"no"},{n:"リバースペックフライ",t:"→ 月・木・土で実施（木金で連続しないよう外した）",w:30,kind:"other"},{n:"★ケーブル・サイドレイズ（片腕）",t:"→ 火・木・土で実施",w:12.5,kind:"other"}]},
-  {part:"腕",day:"土・腕＋肩",note:"土：腕＋肩（側部3回目・後部3回目）＋胸軽め。週6のうち1日抜くならこの日。約16セット。",
-   recNote:"増量期(12月〜)：フィジークは腕が全ポーズで見えるので強化。二頭は金のケーブルと土のダンベルで刺激を変える。カールとプレスダウンは肘を体の横に固定し、反動なしで下ろし切る。インクラインは火より軽い重量で丁寧に。",
+   off:[{n:"RDL（ルーマニアンデッド）",t:"増量期はやらない（背中の厚みはTバーロー、腿裏はレッグカールで）",kind:"no"},{n:"リバースペックフライ",t:"→ 背中A・肩＋広背・腕＋肩で実施",w:30,kind:"other"},{n:"★ケーブル・サイドレイズ（片腕）",t:"→ 胸＋側部・肩＋広背・腕＋肩で実施",w:12.5,kind:"other"}]},
+  {part:"腕",label:"腕＋肩",theme:"胸軽め",muscles:["側部","後部","二頭","三頭","胸"],note:"腕＋肩（側部・後部の3回目）＋胸軽め。時間がない週はこのメニューを飛ばしてよい。約16セット。",
+   recNote:"増量期(12月〜)：フィジークは腕が全ポーズで見えるので強化。二頭は背中Bのケーブルとこのメニューのダンベルで刺激を変える。カールとプレスダウンは肘を体の横に固定し、反動なしで下ろし切る。インクラインは胸＋側部の日より軽い重量で丁寧に。",
    rec:[{n:"インクライン・ダンベルプレス",s:"2×10-12"},{n:"★ケーブル・サイドレイズ（片腕）",s:"4×15-20"},{n:"リバースペックフライ",s:"4×15-20"},{n:"ダンベル・カール",s:"3×10-12"},{n:"ケーブル・プレスダウン",s:"3×10-12"}],
    ex:[{n:"インクライン・ダンベルプレス",t:"胸2回目・軽め ｜ 10–12回",w:15},{n:"★ケーブル・サイドレイズ（片腕）",t:"側部3回目 ｜ 15–20回",w:12.5,star:true},{n:"リバースペックフライ",t:"肩後部3回目 ｜ 15–20回",w:30},{n:"ダンベル・カール",t:"二頭・立位。上げながら手首を外へ返す。両手同時でも交互でもOK、反動なし ｜ 10–12回"},{n:"ケーブル・プレスダウン",t:"三頭 ｜ 10–12回"},{n:"ダンベル・サイドレイズ",t:"ケーブルが無い・混んでいる時：同じ 4×15-20。両手で持ち、少し前傾して小指側から真横へ肩の高さまで。反動なし、下ろしはゆっくり ｜ 15–20回",alt:"ケーブル・サイドレイズ",altOf:"★ケーブル・サイドレイズ（片腕）"},{n:"ダンベル・リアレイズ",t:"リバースペックフライが混んでいる時：同じセット数。ベンチ30〜45度にうつ伏せで胸を当て、腕を真横へ肩の高さまで。肩甲骨は寄せすぎない、反動なし ｜ 15–20回",alt:"リバースペックフライ",altOf:"リバースペックフライ"},{n:"ニュートラルDBエクステンション",t:"混雑時：プレスダウンの代わりに ｜ 12–15回",alt:"プレスダウン",altOf:"ケーブル・プレスダウン"}],
-   off:[{n:"ケーブル・バイセプスカール",t:"→ 金で実施（土はダンベル・カール）",w:35,kind:"other"},{n:"レッグカール",t:"→ 水で実施（脚は週1回・維持）",w:30,kind:"other"},{n:"レッグプレスプレートマシンアウンズ",t:"→ 水で実施",w:80,kind:"other"},{n:"プリチャーカール",t:"増量期はやらない（肘保護）",kind:"no"}]},
+   off:[{n:"ケーブル・バイセプスカール",t:"→ 背中Bで実施（このメニューではダンベル・カール）",w:35,kind:"other"},{n:"レッグカール",t:"→ 脚で実施（脚は維持）",w:30,kind:"other"},{n:"レッグプレスプレートマシンアウンズ",t:"→ 脚で実施",w:80,kind:"other"},{n:"プリチャーカール",t:"増量期はやらない（肘保護）",kind:"no"}]},
+  {part:"合同",label:"合同練習",theme:"BIG3",muscles:["胸","脚","上背","腰"],rest:180,trainer:true,note:"トレーナーとの合同練習（BIG3）。セット・回数・重量はトレーナーの指示どおり。3種目目はデッドリフト／ベントオーバーロー／Tバーローのどれか1つ。休憩は3分。",
+   recNote:"増量期(12月〜)：重量を扱う日。左肩に違和感があればベンチは手幅をやや狭く・下ろしを浅く。デッドリフトはこの日（指導下）だけ、腰は中立。翌日は脚・胸＋側部・背中Bを避ける（メニューボタンの「◯日前」が目安）。",
+   rec:[{n:"ベンチプレス",s:"トレーナーの指示"},{n:"スクワット",s:"トレーナーの指示"},{n:"デッドリフト／ベントオーバーロー／Tバーロー",s:"どれか1つ・指示どおり"}],
+   ex:[{n:"ベンチプレス",t:"胸・BIG3。肩甲骨を寄せて下ろす。左肩に違和感があれば手幅やや狭く・下ろしを浅く ｜ 指示どおり",star:true,main:true},{n:"スクワット",t:"BIG3。腰が丸まらない深さ ｜ 指示どおり",star:true,main:true},{n:"デッドリフト",t:"3種目目の候補①。腰は中立、バーは体の近く ｜ 指示どおり",main:true},{n:"ベントオーバーロー",t:"3種目目の候補②。上体45度前後、腰を丸めない ｜ 指示どおり"},{n:"Tバーロー",t:"3種目目の候補③。胸当て付きなら胸を当てる ｜ 指示どおり"}],
+   off:[]},
 ];
 // ================= LAB DEFS =================
 const LAB_KEY=[
@@ -742,7 +755,8 @@ const AI_MODEL="claude-opus-5-5";
 const AI_ANGLES=["次セットの重量・回数の判断","フォームの要点を1つ","テンポ（下ろす速さ・トップで止める）","セット間の休憩時間","左肩・腰・肘を守る注意点","次回セッションの目標設定","今日の栄養・回復とのつながり","集中を切らさない一言"];
 const AI_SYSTEM=`あなたは日本語で答える経験豊富なパーソナルトレーナーです。相手はテストステロン補充療法中の成人男性で、フィジーク大会（2026-11-14）を終えた直後の増量期（12月〜2月、目標 +0.2〜0.3kg/週）。
 目標は1年後のメンズフィジーク優勝。弱点はバックポーズ（肩後部・側部の隆起と上背の厚み）。最優先は背中と肩、次に腕。フロントは悪くないので胸は維持量、脚はサーフパンツで隠れるので週1回の維持量。
-制約：左肩は保護（肩のプレス系は禁止、片腕・低速・可動域を欲張らない。ディップスは上腕が床と平行まで）、腰は保護（デッドリフト・RDLはやらない、ローは腰中立）、肘は保護（高重量カールやスカルクラッシャーは避ける）。
+トレーニングは曜日固定ではなく、背中A・胸＋側部・脚・肩＋広背・背中B・腕＋肩の6メニューを、前回から空いた順に回す。週1回はトレーナーとの合同練習（ベンチプレス・スクワット・デッドリフト/ベントオーバーロー/Tバーロー）。
+制約：左肩は保護（肩のプレス系は禁止、片腕・低速・可動域を欲張らない。ディップスは上腕が床と平行まで）、腰は保護（RDLはやらない。デッドリフトは合同練習で指導下のときだけ。ローは腰中立）、肘は保護（高重量カールやスカルクラッシャーは避ける）。
 進め方：ダブルプログレッション。全セットで回数上限に RIR1〜2 で届いたら次回 +2.5kg（ダンベルは片手 +2.5kg、マシンは1枚）。多関節は休憩2分、単関節は60〜90秒。
 種目名は本人の略称のことがある（例：「ケーブルプルナロウ」＝狭い手幅のケーブルロー/プル、「シーテッドロープレート」＝プレート装着式のシーテッドロー）。目安欄の説明があればそれを優先し、器具や動きが特定できないときは決めつけず、どの変種にも当てはまる助言（重量・回数の判断、テンポ、休憩、安全）に寄せる。
 回答ルール：1文だけ、全角60字以内。具体的な数字や動作に落とす。前置き・挨拶・絵文字・箇条書きなし。与えられた記録だけから判断し、無い情報は推測で断定しない。
@@ -1305,14 +1319,28 @@ document.getElementById("today").textContent=jpDate();
 // ================= APP =================
 const app={
   partIdx:0,
-  init(){this.partIdx=0;
+  init(){this.partIdx=this.defaultPartIdx();
     this.renderParts();this.renderEx();this.renderTodayRecord();this.renderLabInputs();this.renderMedBtns();this.renderIBInputs();this.renderMeasureInputs();this.renderNutriInputs();this.renderPunct();this.renderSync();this.autoSync();this.renderAi();this.resumeRest();this.renderCircuit();},
   toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1600);},
   // ---- training (part-based, one session per date) ----
-  renderParts(){const el=document.getElementById("partSel");el.innerHTML="";
-    MENU.forEach((m,i)=>{const b=document.createElement("button");b.className=i===this.partIdx?"on":"";
-      b.innerHTML=`${m.part}${m.day?`<span class="sub">${m.day}</span>`:""}`;
+  // ---- rotation（曜日ではなく「前回から何日空いたか」で回す） ----
+  daysBetween(a,b){return Math.round((new Date(b+"T00:00:00")-new Date(a+"T00:00:00"))/86400000);},
+  lastDoneMap(){const m={};DB.training.forEach(s=>{(s.exercises||[]).forEach(e=>{if(!e.part||!(e.sets&&e.sets.length))return;if(!m[e.part]||s.date>m[e.part])m[e.part]=s.date;});});return m;},
+  agoText(date){if(!date)return "未実施";const d=this.daysBetween(date,todayStr());return d<=0?"今日":d===1?"昨日":d+"日前";},
+  // 次のおすすめ：トレーナー合同以外で、最後にやってから最も日が空いたメニュー。昨日（と今日）と部位が重なるものは後回し
+  recommendIdx(){const last=this.lastDoneMap();const t=todayStr();const y=this.addDays(t,-1);
+    const recentMus=new Set();MENU.forEach(m=>{if(last[m.part]===t||last[m.part]===y)(m.muscles||[]).forEach(x=>recentMus.add(x));});
+    const cand=MENU.map((m,i)=>({m,i,age:last[m.part]?this.daysBetween(last[m.part],t):9999,clash:(m.muscles||[]).some(x=>recentMus.has(x))})).filter(c=>!c.m.trainer&&last[c.m.part]!==t);
+    if(!cand.length)return 0;const ok=cand.filter(c=>!c.clash);const pool=ok.length?ok:cand;pool.sort((a,b)=>b.age-a.age);return pool[0].i;},
+  // 起動時：今日すでに記録していればそのメニュー、なければおすすめ
+  defaultPartIdx(){const s=DB.training.find(x=>x.date===todayStr());if(s&&s.exercises.length){const p=s.exercises[s.exercises.length-1].part;const i=MENU.findIndex(m=>m.part===p);if(i>=0)return i;}return this.recommendIdx();},
+  todayMenu(){const s=DB.training.find(x=>x.date===todayStr());if(s&&s.exercises.length){const p=s.exercises[s.exercises.length-1].part;const m=MENU.find(x=>x.part===p);if(m)return {m,done:true};}return {m:MENU[this.recommendIdx()],done:false};},
+  renderParts(){const el=document.getElementById("partSel");el.innerHTML="";const last=this.lastDoneMap();const ri=this.recommendIdx();
+    MENU.forEach((m,i)=>{const b=document.createElement("button");b.className=(i===this.partIdx?"on":"")+(i===ri?" rec":"")+(m.trainer?" tr":"");
+      b.innerHTML=`${m.label||m.part}<span class="sub">${i===ri?"★おすすめ・":""}${this.agoText(last[m.part])}</span>`;
       b.onclick=()=>{this.partIdx=i;this.renderParts();this.renderEx();};el.appendChild(b);});
+    const R=MENU[ri];const rh=document.getElementById("rotHint");
+    if(rh)rh.innerHTML=`次のおすすめ：<b>${R.label}</b>（${this.agoText(last[R.part])}）<br><small>いちばん日が空いたメニューのうち、昨日と部位が重ならないもの。ジムの混み具合や出張先に合わせて別のメニューを選んでもよい。合同練習はトレーナーの予定に合わせて。</small>`;
     document.getElementById("partNote").textContent="▸ "+MENU[this.partIdx].note;},
   todaySession(create){let s=DB.training.find(x=>x.date===todayStr());
     if(!s&&create){s={date:todayStr(),exercises:[]};DB.training.push(s);}return s;},
@@ -1338,10 +1366,10 @@ const app={
     const M=MENU[this.partIdx];
     if(M.rec&&M.rec.length){
       const recDiv=document.createElement("div");recDiv.className="card recbox";
-      recDiv.innerHTML=`<div class="rechd">🔥 増量期（12月〜）バックポーズ・腕 強化メニュー ／ 週6</div>
+      recDiv.innerHTML=`<div class="rechd">🔥 増量期（12月〜）バックポーズ・腕 強化メニュー${M.trainer?" ／ トレーナー合同":" ／ 6メニューをローテーション"}</div>
         <div class="recnote">${M.recNote||""}</div>
         ${M.rec.map((r,i)=>`<div class="recrow${M.ex.some(e=>e.main&&!e.alt&&r.n.replace("★","").startsWith(e.n.replace("★","")))?" main":""}"><span class="recn">${i+1}. ${r.n}</span><span class="recs">${r.s}</span></div>`).join("")}
-        <div class="rechint">◆ 紺＝主種目（ストレートセット・2分休憩・ここで重量を伸ばす）　緑＝混雑時の代替　↓ 下の登録種目に記録します。</div>`;
+        <div class="rechint">◆ 紺＝主種目（ストレートセット・${M.rest?Math.round(M.rest/60):2}分休憩・ここで重量を伸ばす）　緑＝混雑時の代替　↓ 下の登録種目に記録します。</div>`;
       wrap.appendChild(recDiv);
     }
     let offBox=null;
@@ -1369,7 +1397,7 @@ const app={
         }).join("")+'</div>';
       }
       const gymSel=GYMS.map(g=>`<button class="gymbtn" id="gym-${ei}-${g.k}" onclick="app.pickGym(${ei},'${g.k}')">${g.n}</button>`).join("");
-      card.innerHTML=`<div class="ex-h"><div class="ex-num">${ei+1}</div><div style="flex:1"><div class="ex-name"><span class="exname-tap" onclick="app.showHistory('${ex.n.replace(/'/g,"")}')">${ex.star&&!ex.n.startsWith("★")?'<span class="ex-star">★</span>':''}${ex.n}</span>${ex.main?`<span class="offtag main">主種目・ストレート2分</span>`:""}${ex.alt?`<span class="offtag alt">${ex.alt}の代替</span>`:""}<button class="aibtn" title="AIアドバイス" onclick="app.aiAdvise(${ei},true)">💬</button>${isOff?`<span class="offtag ${ex.kind||"other"}">${ex.kind==="no"?"やらない":"別部位"}</span>`:""}${cust?' <span style="font-size:9px;color:var(--care);font-weight:700;">追加</span>':''}</div><div class="ex-target">${ex.t||""}</div></div>${delBtn}</div>${prev}
+      card.innerHTML=`<div class="ex-h"><div class="ex-num">${ei+1}</div><div style="flex:1"><div class="ex-name"><span class="exname-tap" onclick="app.showHistory('${ex.n.replace(/'/g,"")}')">${ex.star&&!ex.n.startsWith("★")?'<span class="ex-star">★</span>':''}${ex.n}</span>${ex.main?`<span class="offtag main">主種目・ストレート${M.rest?Math.round(M.rest/60):2}分</span>`:""}${ex.alt?`<span class="offtag alt">${ex.alt}の代替</span>`:""}<button class="aibtn" title="AIアドバイス" onclick="app.aiAdvise(${ei},true)">💬</button>${isOff?`<span class="offtag ${ex.kind||"other"}">${ex.kind==="no"?"やらない":"別部位"}</span>`:""}${cust?' <span style="font-size:9px;color:var(--care);font-weight:700;">追加</span>':''}</div><div class="ex-target">${ex.t||""}</div></div>${delBtn}</div>${prev}
         ${doneHtml}
         <div class="gymsel">${gymSel}</div>
         <input class="gymname-in" id="gymname-${ei}" placeholder="ジム名を入力" style="display:none;">
@@ -1837,7 +1865,7 @@ const app={
       return row+det;}).join("");},
   nutriToggleRow(d){this._nuOpen=this._nuOpen||{};this._nuOpen[d]=!this._nuOpen[d];this.renderNutri();},
   // ---- rest timer (記録のたびにカウントダウン) ----
-  restSecondsFor(ex){return (REST_COMPOUND_RE.test(ex.n)&&!/プレスダウン|プルオーバー|片手/.test(ex.n))?REST_COMPOUND:REST_ISO;}, // プレスダウン・プルオーバーは単関節、片手ローは左右交互なので短め
+  restSecondsFor(ex){const M=MENU[this.partIdx];const comp=REST_COMPOUND_RE.test(ex.n)&&!/プレスダウン|プルオーバー|片手/.test(ex.n);if(comp&&M&&M.rest)return M.rest;return comp?REST_COMPOUND:REST_ISO;}, // 合同練習の BIG3 は3分 // プレスダウン・プルオーバーは単関節、片手ローは左右交互なので短め
   // おすすめ欄「3×8-10」の 3 ＝ その日の予定セット数（おすすめに無い種目は不明＝null）
   plannedSets(ex,partIdx){const M=MENU[partIdx==null?this.partIdx:partIdx];const nm=(ex.altOf||ex.n).replace("★",""); // 代替種目は代替元の予定セット数を使う
     let rs=(M.rec||[]).filter(x=>x.n.replace("★","")===nm);if(!rs.length)rs=(M.rec||[]).filter(x=>x.n.replace("★","").startsWith(nm)); // 「シーテッドロー ワイド＋片腕」のように分かれた行は合算
@@ -1915,7 +1943,7 @@ const app={
       if(hist.length>=3&&histOther.length>=1)break;}
     const bb=this.bestSince(ex.n);
     const nu=[...DB.nutrition].filter(x=>x.date<=today).slice(-7);const kc=nu.filter(x=>x.kcal!=null&&!x.excluded).map(x=>x.kcal);const wt=[...nu].reverse().find(x=>x.amWt!=null);
-    const lines=[`日付: ${today}（${wd[d.getDay()]}）　部位: ${M.part}（${M.day||""}）`,
+    const lines=[`日付: ${today}（${wd[d.getDay()]}）　メニュー: ${M.label||M.part}${M.trainer?"（トレーナーとの合同練習。重量・回数の判断はトレーナーの指示を優先し、フォームや安全面の一言にする）":""}`,
       `種目: ${ex.n.replace("★","")}${ex.t?"（目安・説明: "+ex.t+"）":""}${rec?"　今日の推奨: "+rec.s:""}${ex.alt?"　※"+ex.alt+"の代替として実施":""}${this.isCustom(partIdx,this.partEx(partIdx).indexOf(ex))?"　※本人が追加した種目（名前は略称の可能性）":""}`,
       `場所: ${todayGym||"未選択"}`,
       `今日のここまで（${todaySets.length}セット）: ${todaySets.length?todaySets.map((st,i)=>(i+1)+") "+fmt(st)).join("  "):"まだ記録なし"}`,
@@ -1987,7 +2015,7 @@ const app={
     <div class="mt-rem" style="margin-top:8px;">🍶 今週の飲酒 <b>${cw.drink}日</b>（目標≤2）・推定 ${cw.total}g　｜ 判定できた日 ${cw.days-cw.nodata}/${cw.days}　<span class="na-est">推定・暫定閾値${this.alcThreshold()}g</span></div>`;},
   // 新しい記録日が同期で届いたら、1回だけ自動で食事アドバイス
   maybeAutoMealAdvice(){const c=this.aiCfg();if(!c.key||c.on===false)return;const x=this.latestNutri();if(!x)return;if(c.lastDietAdvice===x.date)return;c.lastDietAdvice=x.date;localStorage.setItem(AI_KEY,JSON.stringify(c));this.mealAdvice(true);},
-  mealContext(){const g=this.nutriGoal();const today=todayStr();const now=new Date();const wd=["日","月","火","水","木","金","土"];const dt=new Date(today+"T00:00:00");const M=MENU.find(m=>(m.day||"").startsWith(wd[dt.getDay()]));
+  mealContext(){const g=this.nutriGoal();const today=todayStr();const now=new Date();const wd=["日","月","火","水","木","金","土"];const dt=new Date(today+"T00:00:00");const TM=this.todayMenu();const M=TM.m;
     const sess=DB.training.find(s2=>s2.date===today);const trained=sess&&sess.exercises.length?sess.exercises.map(e=>e.name.replace("★","")+" "+e.sets.length+"セット").join("、"):"";
     const x=this.latestNutri();const nu=[...DB.nutrition].filter(n=>n.date<=today);
     const last7=nu.filter(n=>n.date>this.addDays(today,-7)&&n.kcal!=null&&!n.excluded);const avg=(a,key)=>a.length?Math.round(a.reduce((s2,n)=>s2+(n[key]||0),0)/a.length):null;
@@ -2002,7 +2030,7 @@ const app={
       `直近7日の平均: ${last7.length?avg(last7,"kcal")+"kcal / P"+avg(last7,"p")+" F"+avg(last7,"f")+" C"+avg(last7,"c")+"（"+last7.length+"日）":"なし"}${tdee?"　推定TDEE "+tdee+"kcal":""}`,
       `朝体重: ${avgw(w7)!=null?"直近7日平均 "+avgw(w7)+"kg":"なし"}${avgw(wp7)!=null?"（前の7日 "+avgw(wp7)+"kg）":""}`,
       `今週の飲酒: ${cw.drink}日・推定 ${cw.total}g`,
-      `今日のトレーニング: ${M?M.part+"（"+M.day+"）":"予定なし"}${trained?"　実施済み: "+trained:"　（まだ記録なし）"}`].join("\n")+"\n\n今日の食べ方（何をどれだけ増やす／減らすか）を2文以内で。";},
+      `今日のトレーニング: ${M?(M.label||M.part)+(TM.done?"":"（おすすめ・未実施）"):"予定なし"}${trained?"　実施済み: "+trained:"　（まだ記録なし）"}`].join("\n")+"\n\n今日の食べ方（何をどれだけ増やす／減らすか）を2文以内で。";},
   async mealAdvice(auto){const c=this.aiCfg();if(!c.key){if(!auto)this.showAiPop("🤖 食事アドバイス","APIキーが未設定です。取込タブの「AIアドバイス」で設定してください。","err");return;}
     this.showAiPop("🤖 食事アドバイス","考え中…","busy");
     try{const txt=await this.aiCall(this.mealContext(),{system:MEAL_ADVICE_SYSTEM});this.showAiPop("🤖 食事アドバイス",txt||"（今回はアドバイスなし）");}
