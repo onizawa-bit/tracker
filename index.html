@@ -546,7 +546,7 @@
       <div class="hint" style="margin:8px 0 0;">読む項目：摂取エネルギー(kcal)・タンパク質・脂質・炭水化物・食物繊維・ナトリウム(→食塩換算)・歩数(1日合計)・朝体重(4〜12時の最初の1件)。他の項目は無視します。同じ日付は上書き、「記録漏れ」チェックは保持します。</div>
     </div>
     <div class="sec-t" style="margin-top:18px;">チャットから取り込み</div>
-    <div class="hint">Claudeのチャットに検査結果やInBodyのスクショ／PDFを上げ、返ってきた取込用テキスト（JSON）をここに貼り付けて「取り込む」を押すと、血液・InBodyに自動反映されます。出張先などで後からまとめたトレーニング記録も同じ欄から入れられます（日付を指定・同じ日の同じ種目は置き換え）。手入力は不要です。</div>
+    <div class="hint">Claudeのチャットに検査結果やInBodyのスクショ／PDFを上げ、返ってきた取込用テキスト（JSON）をここに貼り付けて「取り込む」を押すと、血液・InBodyに自動反映されます。出張先などで後からまとめたトレーニング記録も同じ欄から入れられます（日付を指定・同じ日の同じ種目は置き換え。"replace":true を付けるとその日を丸ごと入れ替え）。手入力は不要です。</div>
     <div class="card">
       <textarea id="importText" rows="6" placeholder='ここにClaudeが出力したJSONを貼り付け…&#10;例：{"labs":[{"date":"2026-07-13","vals":{"tT":2000,"E2":35,"Ht":48.5}}],"inbody":[{"date":"2026-07-13","vals":{"wt":66.5,"smm":32.8,"tbw":42.2},"machine":"anytime","noise":false}]}&#10;※ machine は anytime／funaki／other（省略時は既存の値を維持、なければ不明）&#10;※ 栄養の手作りJSON：{"nutrition":[{"date":"2026-11-16","kcal":2220,"p":157,"f":70.1,"c":240,"fiber":12.3,"salt":9.0,"steps":6500}]}&#10;※ Health Auto Export の JSON（{"data":{"metrics":[...]}}）もここに貼れます'></textarea>
       <button class="btn primary" style="margin-top:10px;" onclick="app.doImport()">取り込む</button>
@@ -1665,11 +1665,12 @@ const app={
     // トレーニング（出張先などで後からまとめて入れる用）。同じ日・同じ種目はセットを置き換える（2回貼っても重複しない）
     if(Array.isArray(obj.training)){const parts=new Set(MENU.map(m=>m.part));const gk=new Set(GYMS.map(g=>g.k));const sv=v=>v==null?"":String(v);
       obj.training.forEach(x=>{if(!x||!/^\d{4}-\d{2}-\d{2}$/.test(x.date||"")||!Array.isArray(x.exercises))return;
-        let sess=DB.training.find(y=>y.date===x.date);let touched=false;
+        let sess=DB.training.find(y=>y.date===x.date);let touched=false;let cleared=x.replace!==true; // replace:true＝その日の記録を丸ごと入れ替え（付け間違いの修正用）
         x.exercises.forEach(e=>{if(!e||!e.name||!parts.has(e.part)||!Array.isArray(e.sets))return;
           const sets=e.sets.filter(t=>t&&(t.w!=null||t.r!=null)).map(t=>{const gym=gk.has(t.gym)?t.gym:"";const st={w:sv(t.w),r:sv(t.r),rir:sv(t.rir),gym,memo:sv(t.memo)};if(gym==="o")st.gymName=sv(t.gymName);return st;});
           if(!sets.length)return;
           if(!sess){sess={date:x.date,exercises:[]};DB.training.push(sess);}
+          if(!cleared){sess.exercises=[];cleared=true;}
           const old=sess.exercises.find(y=>y.name===e.name&&y.part===e.part);
           if(old)old.sets=sets;else sess.exercises.push({name:e.name,part:e.part,sets});
           nTr+=sets.length;touched=true;});
